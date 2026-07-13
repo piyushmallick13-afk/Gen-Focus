@@ -1,5 +1,5 @@
 import { Product } from '../types';
-import { ExternalLink, ArrowRight, Star } from 'lucide-react';
+import { ExternalLink, ArrowRight, Star, IndianRupee } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface ProductCardProps {
@@ -42,8 +42,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
               </Link>
             </div>
             <div className="flex flex-col items-end mt-0.5">
-              <span className="text-base font-medium text-stone-800">{product.price}</span>
-              {product.mrp && <span className="text-xs text-stone-400 line-through mt-0.5">{product.mrp}</span>}
+              <span className="text-base font-medium text-stone-800 flex items-center">
+                <IndianRupee className="w-3.5 h-3.5" />
+                {product.price.replace('₹', '')}
+              </span>
+              {product.mrp && (
+                <span className="text-xs text-stone-400 line-through mt-0.5 flex items-center">
+                  <IndianRupee className="w-2.5 h-2.5" />
+                  {product.mrp.replace('₹', '')}
+                </span>
+              )}
             </div>
           </div>
           <p className="text-sm text-stone-500 leading-relaxed mb-6 font-light line-clamp-3">
@@ -101,8 +109,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
             </Link>
           </div>
           <div className="flex flex-col items-end mt-0.5">
-            <span className="text-sm font-medium text-stone-800">{product.price}</span>
-            {product.mrp && <span className="text-xs text-stone-400 line-through mt-0.5">{product.mrp}</span>}
+            <span className="text-sm font-medium text-stone-800 flex items-center">
+              <IndianRupee className="w-3 h-3" />
+              {product.price.replace('₹', '')}
+            </span>
+            {product.mrp && (
+              <span className="text-xs text-stone-400 line-through mt-0.5 flex items-center">
+                <IndianRupee className="w-2.5 h-2.5" />
+                {product.mrp.replace('₹', '')}
+              </span>
+            )}
           </div>
         </div>
         <p className="text-sm text-stone-500 leading-relaxed mb-5 font-light line-clamp-2">

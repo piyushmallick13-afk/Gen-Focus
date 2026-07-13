@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
-import { ArrowLeft, ExternalLink, Star } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Star, IndianRupee } from 'lucide-react';
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
@@ -69,9 +69,15 @@ export default function ProductDetails() {
               {product.name}
             </h1>
             <div className="flex items-center gap-3 mb-8">
-              <p className="text-3xl font-medium text-stone-900">{product.price}</p>
+              <p className="text-3xl font-medium text-stone-900 flex items-center">
+                <IndianRupee className="w-6 h-6 mr-1" />
+                {product.price.replace('₹', '')}
+              </p>
               {product.mrp && (
-                <p className="text-xl font-light text-stone-400 line-through">{product.mrp}</p>
+                <p className="text-xl font-light text-stone-400 line-through flex items-center">
+                  <IndianRupee className="w-5 h-5" />
+                  {product.mrp.replace('₹', '')}
+                </p>
               )}
               {product.discount && (
                 <span className="bg-stone-100 text-stone-800 text-sm font-medium px-2.5 py-1 rounded-md border border-stone-200">
