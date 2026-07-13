@@ -66,7 +66,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
 
   return (
     <div className="group flex flex-col h-full">
-      <Link to={`/product/${product.id}`} className={`relative aspect-[4/5] w-full overflow-hidden rounded-2xl ${product.imageBgColor || 'bg-stone-100'} transition-transform duration-500 group-hover:shadow-sm block`}>
+      <Link to={`/product/${product.id}`} className={`relative aspect-square sm:aspect-[4/5] w-full overflow-hidden rounded-2xl ${product.imageBgColor || 'bg-stone-100'} transition-transform duration-500 group-hover:shadow-sm block`}>
         {product.discount && (
           <div className="absolute top-3 left-3 z-20 bg-rose-500 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-sm shadow-sm flex items-center gap-1.5">
             <span>Best Deal</span>

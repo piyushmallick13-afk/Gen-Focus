@@ -5,12 +5,13 @@ import { useProducts } from '../hooks/useProducts';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, ArrowUpZA, Clock, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, Clock, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { allCategories } from '../data';
 
 export default function Home() {
   const { products } = useProducts();
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'latest' | 'price-asc' | 'price-desc'>('latest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchParams] = useSearchParams();
@@ -356,22 +357,39 @@ export default function Home() {
               </div>
 
               <div>
-                <h3 className="text-xs font-medium text-stone-900 uppercase tracking-widest mb-6">Categories</h3>
-                <div className="flex flex-col gap-2">
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setActiveCategory(category)}
-                      className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                        activeCategory === category
-                          ? 'bg-stone-900 text-white shadow-md'
-                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                      }`}
+                <button 
+                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                  className="flex items-center justify-between w-full text-left text-xs font-medium text-stone-900 uppercase tracking-widest mb-6 focus:outline-none"
+                >
+                  <span>Categories</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {isCategoriesOpen && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
                     >
-                      {category}
-                    </button>
-                  ))}
-                </div>
+                      <div className="flex flex-wrap gap-2 pb-4">
+                        {categories.map(category => (
+                          <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={`px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
+                              activeCategory === category
+                                ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50'
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             
