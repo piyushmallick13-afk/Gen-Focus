@@ -1,37 +1,55 @@
 import { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { products as defaultProducts } from '../data';
+import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('genfocus_products_inr');
-    if (stored) {
-      setProducts(JSON.parse(stored));
-    } else {
-      setProducts(defaultProducts);
-      localStorage.setItem('genfocus_products_inr', JSON.stringify(defaultProducts));
-    }
+    const productsRef = collection(db, 'products');
+    
+    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Product));
+      
+      // Sort by ID assuming they are added chronologically or ordered
+      fetchedProducts.sort((a, b) => Number(a.id) - Number(b.id));
+      setProducts(fetchedProducts);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const addProduct = (product: Product) => {
-    const newProducts = [product, ...products];
-    setProducts(newProducts);
-    localStorage.setItem('genfocus_products_inr', JSON.stringify(newProducts));
+  const addProduct = async (product: Product) => {
+    try {
+      await setDoc(doc(db, 'products', product.id), product);
+    } catch (error) {
+      console.error("Error adding product:", error);
+    }
   };
 
-  const removeProduct = (id: string) => {
-    const newProducts = products.filter(p => p.id !== id);
-    setProducts(newProducts);
-    localStorage.setItem('genfocus_products_inr', JSON.stringify(newProducts));
+  const removeProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+    } catch (error) {
+      console.error("Error removing product:", error);
+    }
   };
 
-  const editProduct = (updatedProduct: Product) => {
-    const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-    setProducts(newProducts);
-    localStorage.setItem('genfocus_products_inr', JSON.stringify(newProducts));
+  const editProduct = async (updatedProduct: Product) => {
+    try {
+      await setDoc(doc(db, 'products', updatedProduct.id), updatedProduct);
+    } catch (error) {
+      console.error("Error editing product:", error);
+    }
   };
 
-  return { products, addProduct, removeProduct, editProduct };
+  return { products, loading, addProduct, removeProduct, editProduct };
 }
+

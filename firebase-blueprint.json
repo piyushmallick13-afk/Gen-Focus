@@ -1,0 +1,24 @@
+{
+  "collections": [
+    {
+      "name": "products",
+      "description": "Products available in the store",
+      "fields": [
+        { "name": "name", "type": "string", "description": "Product name" },
+        { "name": "description", "type": "string", "description": "Product description" },
+        { "name": "price", "type": "string", "description": "Product price" },
+        { "name": "mrp", "type": "string", "description": "Maximum retail price", "required": false },
+        { "name": "imageUrl", "type": "string", "description": "Product image URL" },
+        { "name": "category", "type": "string", "description": "Product category" },
+        { "name": "rating", "type": "number", "description": "Product rating", "required": false },
+        { "name": "imageBgColor", "type": "string", "description": "Background color class", "required": false }
+      ],
+      "access": {
+        "create": "public",
+        "read": "public",
+        "update": "public",
+        "delete": "public"
+      }
+    }
+  ]
+}

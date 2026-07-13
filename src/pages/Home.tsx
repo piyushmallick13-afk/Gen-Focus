@@ -112,6 +112,8 @@ export default function Home() {
                 <div className="aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden bg-stone-100 shadow-2xl shadow-stone-200/50 relative border border-white/50 group">
                   <div className="absolute inset-0 bg-gradient-to-tr from-stone-200/40 to-transparent z-10 pointer-events-none mix-blend-overlay" />
                   
+                  {heroProducts.length > 0 ? (
+                  <>
                   <AnimatePresence initial={false} custom={heroDirection}>
                     <motion.div
                       key={heroIndex}
@@ -164,6 +166,7 @@ export default function Home() {
                   </AnimatePresence>
 
                   {/* Navigation Arrows */}
+                  {heroProducts.length > 1 && (
                   <div className="absolute top-1/2 -translate-y-1/2 left-3 right-3 flex justify-between z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button 
                       onClick={handlePrevHero} 
@@ -180,6 +183,13 @@ export default function Home() {
                       <ChevronRight className="w-5 h-5" />
                     </button>
                   </div>
+                  )}
+                  </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-stone-400">
+                      <p>No products available</p>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Decorative floating elements */}
