@@ -361,20 +361,31 @@ export default function Home() {
                   onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                   className="flex items-center justify-between w-full text-left text-xs font-medium text-stone-900 uppercase tracking-widest mb-6 focus:outline-none"
                 >
-                  <span>Categories</span>
+                  <span className="flex items-center gap-2">
+                    <LayoutGrid className="w-4 h-4 text-stone-400" />
+                    Categories
+                  </span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <AnimatePresence>
                   {isCategoriesOpen && (
                     <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      variants={{
+                        hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] } },
+                        visible: { height: 'auto', opacity: 1, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98], staggerChildren: 0.05 } }
+                      }}
                       className="overflow-hidden"
                     >
                       <div className="flex flex-wrap gap-2 pb-4">
                         {categories.map(category => (
-                          <button
+                          <motion.button
+                            variants={{
+                              hidden: { opacity: 0, y: 10 },
+                              visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] } }
+                            }}
                             key={category}
                             onClick={() => setActiveCategory(category)}
                             className={`px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
@@ -384,7 +395,7 @@ export default function Home() {
                             }`}
                           >
                             {category}
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     </motion.div>
