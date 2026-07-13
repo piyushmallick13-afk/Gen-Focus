@@ -63,10 +63,10 @@ export default function Header() {
     }
   };
 
-  const handleSuggestionClick = (productName: string) => {
-    setSearchQuery(productName);
+  const handleSuggestionClick = (product: { id: string; name: string }) => {
+    setSearchQuery(product.name);
     setShowSuggestions(false);
-    navigate(`/?q=${encodeURIComponent(productName)}`);
+    navigate(`/product/${product.id}`);
   };
 
   const filteredSuggestions = searchQuery.trim() 
@@ -139,7 +139,7 @@ export default function Header() {
                     <button
                       key={product.id}
                       type="button"
-                      onClick={() => handleSuggestionClick(product.name)}
+                      onClick={() => handleSuggestionClick(product)}
                       className="text-left px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors border-b border-stone-100 last:border-0 truncate"
                     >
                       {product.name}
