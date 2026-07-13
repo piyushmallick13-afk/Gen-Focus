@@ -241,30 +241,36 @@ export default function Home() {
         <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto relative">
           <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
-            {/* Desktop Sidebar Filters */}
-            <aside className="hidden lg:flex flex-col w-56 shrink-0 sticky top-28 gap-10">
+            {/* Sidebar Filters */}
+            <aside className="flex flex-col w-full lg:w-56 shrink-0 lg:sticky lg:top-28 gap-6 lg:gap-10">
               {/* Sort Options */}
               <div>
-                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-3 lg:mb-4 flex items-center gap-2">
                   <ArrowDownAZ className="w-4 h-4 text-stone-400" />
                   Sort By
                 </h3>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
                   <button
                     onClick={() => handleSortChange('latest')}
-                    className={`text-left text-sm transition-colors ${sortBy === 'latest' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'latest' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
+                    }`}
                   >
                     Latest Arrivals
                   </button>
                   <button
                     onClick={() => handleSortChange('price-asc')}
-                    className={`text-left text-sm transition-colors ${sortBy === 'price-asc' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'price-asc' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
+                    }`}
                   >
                     Price: Low to High
                   </button>
                   <button
                     onClick={() => handleSortChange('price-desc')}
-                    className={`text-left text-sm transition-colors ${sortBy === 'price-desc' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'price-desc' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
+                    }`}
                   >
                     Price: High to Low
                   </button>
@@ -273,19 +279,19 @@ export default function Home() {
 
               {/* Category Filter */}
               <div>
-                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-3 lg:mb-4 flex items-center gap-2">
                   <LayoutGrid className="w-4 h-4 text-stone-400" />
                   Categories
                 </h3>
-                <div className="flex flex-col gap-3 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+                <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-y-auto max-h-auto lg:max-h-[60vh] pr-0 lg:pr-2 custom-scrollbar pb-2 lg:pb-0">
                   {categories.map(category => (
                     <button
                       key={category}
                       onClick={() => handleCategoryChange(category)}
-                      className={`text-left text-sm transition-colors ${
+                      className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
                         activeCategory === category 
-                          ? 'text-stone-900 font-medium' 
-                          : 'text-stone-500 hover:text-stone-800'
+                          ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' 
+                          : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
                       }`}
                     >
                       {category}
