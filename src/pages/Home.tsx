@@ -5,17 +5,30 @@ import { useProducts } from '../hooks/useProducts';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, ArrowUpZA, Clock, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { allCategories } from '../data';
 
 export default function Home() {
   const { products } = useProducts();
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'latest' | 'price-asc' | 'price-desc'>('latest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
+  const activeCategory = searchParams.get('category') || 'All';
+  const sortBy = (searchParams.get('sort') || 'latest') as 'latest' | 'price-asc' | 'price-desc';
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  const handleCategoryChange = (category: string) => {
+    setSearchParams(prev => {
+      prev.set('category', category);
+      return prev;
+    });
+  };
+
+  const handleSortChange = (sort: 'latest' | 'price-asc' | 'price-desc') => {
+    setSearchParams(prev => {
+      prev.set('sort', sort);
+      return prev;
+    });
+  };
   
   // Hero Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
@@ -225,11 +238,65 @@ export default function Home() {
         </section>
 
         {/* Product Layout Section */}
-        <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto">
-          <div className="flex flex-col-reverse lg:flex-row gap-12 lg:gap-16 items-start">
+        <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto relative">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
-            {/* Main Product Grid (Left) */}
-            <div className="flex-grow w-full lg:w-3/4">
+            {/* Desktop Sidebar Filters */}
+            <aside className="hidden lg:flex flex-col w-56 shrink-0 sticky top-28 gap-10">
+              {/* Sort Options */}
+              <div>
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <ArrowDownAZ className="w-4 h-4 text-stone-400" />
+                  Sort By
+                </h3>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => handleSortChange('latest')}
+                    className={`text-left text-sm transition-colors ${sortBy === 'latest' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Latest Arrivals
+                  </button>
+                  <button
+                    onClick={() => handleSortChange('price-asc')}
+                    className={`text-left text-sm transition-colors ${sortBy === 'price-asc' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Price: Low to High
+                  </button>
+                  <button
+                    onClick={() => handleSortChange('price-desc')}
+                    className={`text-left text-sm transition-colors ${sortBy === 'price-desc' ? 'text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Price: High to Low
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <LayoutGrid className="w-4 h-4 text-stone-400" />
+                  Categories
+                </h3>
+                <div className="flex flex-col gap-3 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => handleCategoryChange(category)}
+                      className={`text-left text-sm transition-colors ${
+                        activeCategory === category 
+                          ? 'text-stone-900 font-medium' 
+                          : 'text-stone-500 hover:text-stone-800'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Product Grid */}
+            <div className="flex-grow w-full min-w-0">
               <motion.div 
                 className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-12"
                 initial={{ opacity: 0 }}
@@ -306,7 +373,9 @@ export default function Home() {
                 <div className="py-20 text-center text-stone-500 bg-stone-50 rounded-2xl border border-stone-100">
                   <p>No products found matching your criteria.</p>
                   <button 
-                    onClick={() => { setActiveCategory('All'); window.history.replaceState({}, '', '/'); }} 
+                    onClick={() => { 
+                      setSearchParams(prev => { prev.delete('category'); prev.delete('q'); return prev; }); 
+                    }} 
                     className="mt-4 text-stone-900 font-medium hover:underline"
                   >
                     Clear Filters
@@ -315,95 +384,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Category Panel (Right) */}
-            <div className="w-full lg:w-1/4 sticky top-32 flex flex-col gap-10">
-              <div>
-                <h3 className="text-xs font-medium text-stone-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-stone-400" />
-                  Sort By
-                </h3>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => setSortBy('latest')}
-                    className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                      sortBy === 'latest'
-                        ? 'bg-stone-900 text-white shadow-md'
-                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                    }`}
-                  >
-                    Latest Products
-                  </button>
-                  <button
-                    onClick={() => setSortBy('price-asc')}
-                    className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                      sortBy === 'price-asc'
-                        ? 'bg-stone-900 text-white shadow-md'
-                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                    }`}
-                  >
-                    Price: Low to High
-                  </button>
-                  <button
-                    onClick={() => setSortBy('price-desc')}
-                    className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                      sortBy === 'price-desc'
-                        ? 'bg-stone-900 text-white shadow-md'
-                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                    }`}
-                  >
-                    Price: High to Low
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <button 
-                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                  className="flex items-center justify-between w-full text-left text-xs font-medium text-stone-900 uppercase tracking-widest mb-6 focus:outline-none"
-                >
-                  <span className="flex items-center gap-2">
-                    <LayoutGrid className="w-4 h-4 text-stone-400" />
-                    Categories
-                  </span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {isCategoriesOpen && (
-                    <motion.div 
-                      initial="hidden"
-                      animate="visible"
-                      exit="hidden"
-                      variants={{
-                        hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] } },
-                        visible: { height: 'auto', opacity: 1, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98], staggerChildren: 0.05 } }
-                      }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex flex-wrap gap-2 pb-4">
-                        {categories.map(category => (
-                          <motion.button
-                            variants={{
-                              hidden: { opacity: 0, y: 10 },
-                              visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] } }
-                            }}
-                            key={category}
-                            onClick={() => setActiveCategory(category)}
-                            className={`px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
-                              activeCategory === category
-                                ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50'
-                            }`}
-                          >
-                            {category}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-            
           </div>
         </section>
         
