@@ -1,0 +1,111 @@
+import { Product } from './types';
+
+export const allCategories = [
+  "Smartphones & Accessories",
+  "Computers & Laptops",
+  "Audio & Headphones",
+  "Wearable Technology",
+  "Men's Fashion",
+  "Women's Fashion",
+  "Footwear",
+  "Accessories",
+  "Activewear & Apparel",
+  "Fitness & Training",
+  "Outdoor Sports",
+  "Team Sports",
+  "Furniture",
+  "Home Decor",
+  "Kitchen & Dining",
+  "Bed & Bath",
+  "Supplements & Vitamins",
+  "Personal Care",
+  "Medical Supplies",
+  "Gaming",
+  "Toys & Collectibles",
+  "Books & Media",
+  "Smart Toys & Drones",
+  "Home & Kitchen",
+  "Workspace",
+  "Living"
+];
+
+export const products: Product[] = [
+  {
+    id: '1',
+    name: 'Ceramic Pour-Over Kettle',
+    description: 'Matte finish with a precision spout for the perfect morning ritual.',
+    price: '₹5,499',
+    mrp: '₹7,999',
+    discount: '31%',
+    imageUrl: 'https://images.unsplash.com/photo-1544004481-7998634d008d?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/1',
+    category: 'Home & Kitchen',
+    imageBgColor: 'bg-[#F4F1EE]',
+    rating: 4.8
+  },
+  {
+    id: '2',
+    name: 'Minimalist Desk Lamp',
+    description: 'Soft ambient lighting with adjustable brightness for deep focus.',
+    price: '₹9,999',
+    mrp: '₹14,999',
+    discount: '33%',
+    imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/2',
+    category: 'Workspace',
+    imageBgColor: 'bg-[#EFF2F0]',
+    rating: 4.5
+  },
+  {
+    id: '3',
+    name: 'Linen Throw Blanket',
+    description: 'Breathable, ultra-soft organic linen for year-round comfort.',
+    price: '₹6,999',
+    mrp: '₹8,999',
+    discount: '22%',
+    imageUrl: 'https://images.unsplash.com/photo-1580870059815-5633e72eb178?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/3',
+    category: 'Living',
+    imageBgColor: 'bg-[#F3EFEA]',
+    rating: 5
+  },
+  {
+    id: '4',
+    name: 'Leather Notebook Folio',
+    description: 'Handcrafted full-grain leather to protect your thoughts and ideas.',
+    price: '₹3,499',
+    mrp: '₹4,999',
+    discount: '30%',
+    imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/4',
+    category: 'Accessories',
+    imageBgColor: 'bg-[#EAECEF]',
+    rating: 4.9
+  },
+  {
+    id: '5',
+    name: 'Acoustic Desk Partition',
+    description: 'Reduce noise and visual distractions in open spaces effortlessly.',
+    price: '₹15,999',
+    mrp: '₹19,999',
+    discount: '20%',
+    imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/5',
+    category: 'Workspace',
+    imageBgColor: 'bg-[#F0EBE6]',
+    rating: 4.7
+  },
+  {
+    id: '6',
+    name: 'Stoneware Mug Set',
+    description: 'Set of two handmade mugs, glazed in a soft, earthy tone.',
+    price: '₹2,999',
+    mrp: '₹3,999',
+    discount: '25%',
+    imageUrl: 'https://images.unsplash.com/photo-1610738038706-c87d4637da8c?q=80&w=800&auto=format&fit=crop',
+    affiliateUrl: 'https://example.com/affiliate/6',
+    category: 'Home & Kitchen',
+    imageBgColor: 'bg-[#EBF0EF]',
+    rating: 4.6
+  }
+];
