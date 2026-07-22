@@ -238,6 +238,9 @@ export default function Admin() {
                       <optgroup label="Clothing & Apparel">
                         <option value="Men's Fashion">Men's Fashion</option>
                         <option value="Women's Fashion">Women's Fashion</option>
+                        <option value="Kid's Fashion">Kid's Fashion</option>
+                        <option value="Boy's Fashion">Boy's Fashion</option>
+                        <option value="Girl's Fashion">Girl's Fashion</option>
                         <option value="Footwear">Footwear</option>
                         <option value="Accessories">Accessories</option>
                       </optgroup>
