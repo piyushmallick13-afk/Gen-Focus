@@ -146,7 +146,7 @@ export default function Admin() {
   };
 
   if (!isAuthenticated) {
-    const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // fallback to test key if not set
+    const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LchtGgtAAAAAJ5o1BoXLg2YF2_UTDdL7jzkopW1'; // fallback to provided key if not set
 
     return (
       <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
