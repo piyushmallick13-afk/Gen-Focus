@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { Plus, Trash2, Lock, Edit2, Link as LinkIcon } from 'lucide-react';
 import { NavLink } from '../types';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 export default function Admin() {
   const { products, addProduct, removeProduct, editProduct } = useProducts();
@@ -12,6 +13,8 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'products' | 'links'>('products');
@@ -128,15 +131,23 @@ export default function Admin() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaValue) {
+      setError('Please complete the reCAPTCHA.');
+      return;
+    }
     if (pin === '@%Ben') {
       setIsAuthenticated(true);
       setError('');
     } else {
       setError('Incorrect PIN. Please try again.');
+      recaptchaRef.current?.reset();
+      setCaptchaValue(null);
     }
   };
 
   if (!isAuthenticated) {
+    const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // fallback to test key if not set
+
     return (
       <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
         <Header />
@@ -157,8 +168,15 @@ export default function Admin() {
                   placeholder="••••••"
                   autoFocus
                 />
-                {error && <p className="text-rose-500 text-sm mt-2 text-center">{error}</p>}
               </div>
+              <div className="flex justify-center">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={recaptchaSiteKey}
+                  onChange={(value) => setCaptchaValue(value)}
+                />
+              </div>
+              {error && <p className="text-rose-500 text-sm mt-2 text-center">{error}</p>}
               <button type="submit" className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors">
                 Unlock
               </button>
