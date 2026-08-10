@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { allCategories } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
-import CountdownTimer from './CountdownTimer';
 
 export default function Header() {
   const { links } = useNavLinks();
@@ -75,44 +74,38 @@ export default function Header() {
     : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-slate-50/90 backdrop-blur-md border-b-4 border-orange-500">
+    <header className="sticky top-0 z-50 w-full bg-slate-50/80 backdrop-blur-md border-b border-stone-200/50">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2 -ml-2 text-green-700 hover:text-orange-500 transition-colors"
+            className="p-2 -ml-2 text-stone-600 hover:text-stone-900 transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
         </div>
         
         <Link to="/" className="flex items-center gap-3">
-          <img src="/src/assets/images/indian_lotus_icon_1785629081547.jpg" alt="Lotus" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
-          <span className="text-2xl font-display font-medium tracking-wide text-green-700">
+          <span className="text-2xl font-display font-medium tracking-wide text-stone-800">
             genfocus
           </span>
         </Link>
         
-        <div className="hidden lg:flex items-center gap-4">
-          <CountdownTimer targetDate={new Date('2026-08-07T00:00:00')} />
-        </div>
-
         <nav className="hidden lg:flex items-center gap-8">
           {exploreLinks.map(link => (
-            <Link key={link.id} to={link.url} className="text-sm font-medium text-slate-600 hover:text-orange-500 transition-colors">
+            <Link key={link.id} to={link.url} className="text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
               {link.label}
             </Link>
           ))}
         </nav>
 
-
         <div className="flex items-center gap-4 relative">
-          <Link to="/admin" className="p-2 text-slate-600 hover:text-green-700 transition-colors" title="Admin">
+          <Link to="/admin" className="p-2 text-stone-600 hover:text-stone-900 transition-colors" title="Admin">
             <Settings className="w-5 h-5" />
           </Link>
           
           {isSearchOpen ? (
-            <form ref={searchRef} onSubmit={handleSearchSubmit} className="relative flex items-center border border-green-200 rounded-full px-3 py-1.5 bg-white shadow-sm">
+            <form ref={searchRef} onSubmit={handleSearchSubmit} className="relative flex items-center border border-stone-200 rounded-full px-3 py-1.5 bg-white shadow-sm">
               <input 
                 type="text" 
                 value={searchQuery}
@@ -122,10 +115,10 @@ export default function Header() {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="Search..." 
-                className="w-32 md:w-48 bg-transparent text-sm focus:outline-none text-slate-800"
+                className="w-32 md:w-48 bg-transparent text-sm focus:outline-none text-stone-800"
                 autoFocus
               />
-              <button type="submit" className="p-1 text-slate-400 hover:text-orange-500 transition-colors">
+              <button type="submit" className="p-1 text-stone-400 hover:text-stone-800 transition-colors">
                 <Search className="w-4 h-4" />
               </button>
               <button 
@@ -135,19 +128,19 @@ export default function Header() {
                   setSearchQuery(searchParams.get('q') || ''); 
                   setShowSuggestions(false);
                 }} 
-                className="p-1 text-slate-400 hover:text-orange-500 transition-colors ml-1"
+                className="p-1 text-stone-400 hover:text-stone-800 transition-colors ml-1"
               >
                 <X className="w-4 h-4" />
               </button>
 
               {showSuggestions && filteredSuggestions.length > 0 && (
-                <div className="absolute top-full right-0 mt-2 w-full md:w-64 bg-white border border-green-200 rounded-xl shadow-lg overflow-hidden flex flex-col z-50">
+                <div className="absolute top-full right-0 mt-2 w-full md:w-64 bg-white border border-stone-200 rounded-xl shadow-lg overflow-hidden flex flex-col z-50">
                   {filteredSuggestions.map(product => (
                     <button
                       key={product.id}
                       type="button"
                       onClick={() => handleSuggestionClick(product)}
-                      className="text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-green-700 transition-colors border-b border-green-50 last:border-0 truncate"
+                      className="text-left px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors border-b border-stone-100 last:border-0 truncate"
                     >
                       {product.name}
                     </button>
@@ -158,7 +151,7 @@ export default function Header() {
           ) : (
             <button 
               onClick={() => setIsSearchOpen(true)} 
-              className="p-2 text-slate-600 hover:text-green-700 transition-colors" 
+              className="p-2 text-stone-600 hover:text-stone-900 transition-colors" 
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
@@ -176,7 +169,7 @@ export default function Header() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 bg-blue-950/20 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
             />
             <motion.div 
               initial={{ x: '-100%' }}
@@ -185,13 +178,13 @@ export default function Header() {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 flex flex-col overflow-y-auto"
             >
-              <div className="p-6 border-b border-blue-100 flex items-center justify-between">
-                <span className="text-xl font-display font-medium tracking-wide text-blue-950">
+              <div className="p-6 border-b border-stone-200/50 flex items-center justify-between">
+                <span className="text-xl font-display font-medium tracking-wide text-stone-800">
                   Menu
                 </span>
                 <button 
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 -mr-2 text-slate-400 hover:text-blue-900 transition-colors"
+                  className="p-2 -mr-2 text-stone-400 hover:text-stone-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -200,8 +193,8 @@ export default function Header() {
               <div className="flex-1 p-6 flex flex-col gap-10">
                 {/* Sort By */}
                 <div>
-                  <h3 className="text-xs font-medium text-blue-950 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-slate-400" />
+                  <h3 className="text-xs font-medium text-stone-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-stone-400" />
                     Sort By
                   </h3>
                   <div className="flex flex-col gap-2">
@@ -209,8 +202,8 @@ export default function Header() {
                       onClick={() => { handleSortChange('latest'); setIsDrawerOpen(false); }}
                       className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                         sortBy === 'latest'
-                          ? 'bg-blue-900 text-white shadow-md'
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          ? 'bg-stone-900 text-white shadow-md'
+                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                       }`}
                     >
                       Latest Products
@@ -219,8 +212,8 @@ export default function Header() {
                       onClick={() => { handleSortChange('price-asc'); setIsDrawerOpen(false); }}
                       className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                         sortBy === 'price-asc'
-                          ? 'bg-blue-900 text-white shadow-md'
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          ? 'bg-stone-900 text-white shadow-md'
+                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                       }`}
                     >
                       Price: Low to High
@@ -229,8 +222,8 @@ export default function Header() {
                       onClick={() => { handleSortChange('price-desc'); setIsDrawerOpen(false); }}
                       className={`text-left px-4 py-3 text-sm font-medium rounded-xl transition-all ${
                         sortBy === 'price-desc'
-                          ? 'bg-blue-900 text-white shadow-md'
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          ? 'bg-stone-900 text-white shadow-md'
+                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                       }`}
                     >
                       Price: High to Low
@@ -242,10 +235,10 @@ export default function Header() {
                 <div>
                   <button 
                     onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                    className="flex items-center justify-between w-full text-left text-xs font-medium text-blue-950 uppercase tracking-widest mb-4 focus:outline-none"
+                    className="flex items-center justify-between w-full text-left text-xs font-medium text-stone-900 uppercase tracking-widest mb-4 focus:outline-none"
                   >
                     <span className="flex items-center gap-2">
-                      <LayoutGrid className="w-4 h-4 text-slate-400" />
+                      <LayoutGrid className="w-4 h-4 text-stone-400" />
                       Categories
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
@@ -273,8 +266,8 @@ export default function Header() {
                               onClick={() => { handleCategoryChange(category); setIsDrawerOpen(false); }}
                               className={`px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
                                 activeCategory === category
-                                  ? 'bg-blue-900 text-white border-blue-900 shadow-sm'
-                                  : 'bg-white text-slate-600 border-blue-100 hover:border-blue-200 hover:bg-slate-50'
+                                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                                  : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50'
                               }`}
                             >
                               {category}
@@ -288,13 +281,13 @@ export default function Header() {
               </div>
 
               {/* Social Media Link */}
-              <div className="p-6 border-t border-blue-100 mt-auto">
+              <div className="p-6 border-t border-stone-200/50 mt-auto">
                 <div className="flex items-center justify-center gap-4">
                   <a 
                     href="https://www.instagram.com/_gen_focus_/" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-900 transition-colors"
+                    className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 transition-colors"
                     aria-label="Instagram"
                   >
                     <Instagram className="w-5 h-5" />
@@ -309,3 +302,4 @@ export default function Header() {
     </header>
   );
 }
+
