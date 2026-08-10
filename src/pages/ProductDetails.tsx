@@ -93,15 +93,24 @@ export default function ProductDetails() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 mt-auto border-t border-stone-200/60 pt-8">
-              <a 
-                href={product.affiliateUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
-              >
-                <span>Purchase Product</span>
-                <ExternalLink className="w-5 h-5 opacity-70" />
-              </a>
+              {product.status === 'coming-soon' ? (
+                <button 
+                  disabled
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-200 text-stone-500 font-medium rounded-xl text-lg px-8 cursor-not-allowed"
+                >
+                  <span>Coming Soon</span>
+                </button>
+              ) : (
+                <a 
+                  href={product.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
+                >
+                  <span>Purchase Product</span>
+                  <ExternalLink className="w-5 h-5 opacity-70" />
+                </a>
+              )}
             </div>
             <p className="text-xs text-stone-400 mt-4 text-center sm:text-left font-light">
               You will be redirected to our trusted partner to complete your purchase.

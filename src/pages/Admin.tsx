@@ -26,7 +26,8 @@ export default function Admin() {
     affiliateUrl: '',
     category: '',
     imageBgColor: 'bg-stone-50',
-    rating: ''
+    rating: '',
+    status: 'available'
   });
 
   const [linkFormData, setLinkFormData] = useState({
@@ -72,7 +73,8 @@ export default function Admin() {
       affiliateUrl: '',
       category: '',
       imageBgColor: 'bg-stone-50',
-      rating: ''
+      rating: '',
+      status: 'available'
     });
   };
 
@@ -111,7 +113,8 @@ export default function Admin() {
       affiliateUrl: product.affiliateUrl,
       category: product.category,
       imageBgColor: product.imageBgColor || 'bg-stone-50',
-      rating: product.rating ? product.rating.toString() : ''
+      rating: product.rating ? product.rating.toString() : '',
+      status: product.status || 'available'
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -274,6 +277,13 @@ export default function Admin() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Status</label>
+                    <select name="status" value={formData.status} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10">
+                      <option value="available">Available</option>
+                      <option value="coming-soon">Coming Soon</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1">Description</label>
                     <textarea required name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full p-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="Product details..." />
                   </div>
@@ -327,7 +337,7 @@ export default function Admin() {
                       <div className="flex-grow min-w-0">
                         <h3 className="text-sm font-medium text-stone-900 truncate">{product.name}</h3>
                         <p className="text-xs text-stone-500 truncate">
-                          {product.category} • {product.price} {product.mrp && <span className="line-through opacity-70 ml-1">{product.mrp}</span>}
+                          {product.category} • {product.price} {product.mrp && <span className="line-through opacity-70 ml-1">{product.mrp}</span>} {product.status === 'coming-soon' ? <span className="text-orange-600 font-medium"> • Coming Soon</span> : ''}
                         </p>
                       </div>
                       <div className="flex items-center gap-4 mt-2 sm:mt-0">
