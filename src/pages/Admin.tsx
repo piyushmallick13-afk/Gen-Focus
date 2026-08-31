@@ -3,18 +3,33 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
-import { Plus, Trash2, Lock, Edit2, Link as LinkIcon } from 'lucide-react';
+import { useSettings } from '../hooks/useSettings';
+import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Save } from 'lucide-react';
 import { NavLink } from '../types';
 
 export default function Admin() {
   const { products, addProduct, removeProduct, editProduct } = useProducts();
   const { links, addLink, removeLink, editLink } = useNavLinks();
+  const { settings, updateSettings } = useSettings();
+  const [settingsFormData, setSettingsFormData] = useState({ videoUrl: '', showVideo: false });
+
+  React.useEffect(() => {
+    setSettingsFormData({
+      videoUrl: settings?.videoUrl || '',
+      showVideo: settings?.showVideo || false
+    });
+  }, [settings]);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'links'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'links' | 'settings'>('products');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -129,6 +144,52 @@ export default function Admin() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsError('');
+    setSettingsSuccess('');
+    
+    let currentVideoUrl = settingsFormData.videoUrl;
+
+    if (videoFile) {
+      const sizeMB = videoFile.size / (1024 * 1024);
+      if (sizeMB < 2 || sizeMB > 5) {
+        setSettingsError(`Video size is ${sizeMB.toFixed(2)} MB. It must be between 2 MB and 5 MB.`);
+        return;
+      }
+      
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('video', videoFile);
+      
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+        
+        currentVideoUrl = data.url;
+        setSettingsFormData(prev => ({ ...prev, videoUrl: currentVideoUrl }));
+        setVideoFile(null); // Clear selected file after upload
+      } catch (err: any) {
+        setSettingsError(err.message || 'Failed to upload video');
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+    
+    updateSettings({ videoUrl: currentVideoUrl, showVideo: settingsFormData.showVideo });
+    setSettingsSuccess('Settings saved successfully!');
+    setTimeout(() => setSettingsSuccess(''), 3000);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === '@%Ben') {
@@ -178,18 +239,24 @@ export default function Admin() {
       <Header />
       
       <main className="flex-grow max-w-7xl mx-auto px-6 py-12 w-full">
-        <div className="flex items-center gap-6 border-b border-stone-200 mb-8">
+        <div className="flex items-center gap-6 border-b border-stone-200 mb-8 overflow-x-auto">
           <button 
             onClick={() => setActiveTab('products')} 
-            className={`pb-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'products' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-900'}`}
+            className={`pb-4 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'products' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-900'}`}
           >
             Manage Products
           </button>
           <button 
             onClick={() => setActiveTab('links')} 
-            className={`pb-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'links' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-900'}`}
+            className={`pb-4 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'links' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-900'}`}
           >
             Manage Navigation Links
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')} 
+            className={`pb-4 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'settings' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-900'}`}
+          >
+            Site Settings
           </button>
         </div>
 
@@ -360,7 +427,7 @@ export default function Admin() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'links' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Form Section */}
             <div className="lg:col-span-1">
@@ -433,6 +500,91 @@ export default function Admin() {
                     <li className="p-8 text-center text-stone-500 text-sm">No links added yet.</li>
                   )}
                 </ul>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-1">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 sticky top-28">
+                <h2 className="text-xl font-medium text-stone-900 mb-6">Site Settings</h2>
+                
+                {settingsError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600">
+                    {settingsError}
+                  </div>
+                )}
+                {settingsSuccess && (
+                  <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-100 text-sm text-green-700">
+                    {settingsSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Showcase Video</label>
+                    <input 
+                      type="file" 
+                      accept="video/mp4,video/webm,video/ogg"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setVideoFile(e.target.files[0]);
+                        }
+                      }} 
+                      className="w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 focus:outline-none" 
+                    />
+                    <p className="text-xs text-stone-500 mt-2">Upload a video between 2 MB and 5 MB to show on the front page.</p>
+                    {videoFile && (
+                      <p className="text-xs text-stone-700 mt-1 font-medium">
+                        Selected: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-4">
+                    <input 
+                      type="checkbox" 
+                      id="showVideo" 
+                      checked={settingsFormData.showVideo || false} 
+                      onChange={(e) => setSettingsFormData({ ...settingsFormData, showVideo: e.target.checked })} 
+                      className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-900/20"
+                    />
+                    <label htmlFor="showVideo" className="text-sm text-stone-700 font-medium">
+                      Show Video on Front Page
+                    </label>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isUploading}
+                    className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isUploading ? 'Uploading & Saving...' : 'Save Settings'}
+                  </button>
+                </form>
+              </div>
+            </div>
+            <div className="lg:col-span-2">
+              <h2 className="text-xl font-medium text-stone-900 mb-6">Video Preview</h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden p-6 aspect-video flex items-center justify-center relative">
+                {videoFile ? (
+                  <video src={URL.createObjectURL(videoFile)} controls className="w-full h-full object-contain rounded-xl bg-stone-900" />
+                ) : settingsFormData.videoUrl ? (
+                  <video src={settingsFormData.videoUrl} controls className="w-full h-full object-contain rounded-xl bg-stone-900" />
+                ) : (
+                  <div className="text-center text-stone-400">
+                    <p>No video uploaded yet.</p>
+                  </div>
+                )}
+                {isUploading && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <div className="text-stone-900 font-medium flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-stone-900 border-t-transparent rounded-full animate-spin"></div>
+                      Uploading...
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
