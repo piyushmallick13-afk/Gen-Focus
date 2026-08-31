@@ -1,4 +1,4 @@
-import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown, MessageSquare } from 'lucide-react';
+import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useNavLinks } from '../hooks/useNavLinks';
 import React, { useState, useEffect, useRef } from 'react';
@@ -100,9 +100,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4 relative">
-          <Link to="/chat" className="p-2 text-stone-600 hover:text-stone-900 transition-colors" title="Chat">
-            <MessageSquare className="w-5 h-5" />
-          </Link>
           <Link to="/admin" className="p-2 text-stone-600 hover:text-stone-900 transition-colors" title="Admin">
             <Settings className="w-5 h-5" />
           </Link>

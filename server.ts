@@ -49,23 +49,12 @@ async function startServer() {
     }
   });
   
-  // Error handler for API routes
+  // Custom error handler for Multer limits
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('Server error:', err);
-    if (req.path.startsWith('/api/')) {
-      const statusCode = err.status || 500;
-      let errorMessage = 'Internal Server Error';
-      
-      if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({ error: 'File size exceeds the 5MB limit.' });
-        }
-        errorMessage = `Upload error: ${err.message}`;
-      } else if (err.message) {
-        errorMessage = err.message;
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File size exceeds the 5MB limit.' });
       }
-      
-      return res.status(statusCode).json({ error: errorMessage });
     }
     next(err);
   });

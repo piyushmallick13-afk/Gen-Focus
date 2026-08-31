@@ -168,23 +168,13 @@ export default function Admin() {
           body: formData,
         });
         
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || 'Upload failed');
-          }
-          currentVideoUrl = data.url;
-        } else {
-          const text = await response.text();
-          if (response.status === 413) {
-            throw new Error('File is too large for the server configuration. Please try a smaller video.');
-          }
-          if (response.status === 404) {
-             throw new Error('Upload endpoint not found (404). If you are testing this in the Shared App (Preview), you MUST click "Update" or "Publish" in the top right of AI Studio to deploy the new file upload server code.');
-          }
-          throw new Error(`Upload failed with status ${response.status}. The server may be restarting, please try again in a few seconds.`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
         }
+        
+        currentVideoUrl = data.url;
         setSettingsFormData(prev => ({ ...prev, videoUrl: currentVideoUrl }));
         setVideoFile(null); // Clear selected file after upload
       } catch (err: any) {
