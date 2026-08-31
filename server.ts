@@ -35,7 +35,7 @@ async function startServer() {
   const app = express();
 
   // API Route for video upload
-  app.post('/upload-video', upload.single('video'), (req, res) => {
+  app.post('/api/upload', upload.single('video'), (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No video file provided.' });
@@ -52,7 +52,7 @@ async function startServer() {
   // Error handler for API routes
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('Server error:', err);
-    if (req.path.startsWith('/api/') || req.path === '/upload-video') {
+    if (req.path.startsWith('/api/')) {
       const statusCode = err.status || 500;
       let errorMessage = 'Internal Server Error';
       

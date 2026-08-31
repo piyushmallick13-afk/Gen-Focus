@@ -163,7 +163,7 @@ export default function Admin() {
       formData.append('video', videoFile);
       
       try {
-        const response = await fetch('/upload-video', {
+        const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
         });
@@ -181,7 +181,7 @@ export default function Admin() {
             throw new Error('File is too large for the server configuration. Please try a smaller video.');
           }
           if (response.status === 404) {
-             throw new Error('Upload endpoint not found (404). The server might be still starting up, or this feature is not supported in the current hosting environment.');
+             throw new Error('Upload endpoint not found (404). If you are testing this in the Shared App (Preview), you MUST click "Update" or "Publish" in the top right of AI Studio to deploy the new file upload server code.');
           }
           throw new Error(`Upload failed with status ${response.status}. The server may be restarting, please try again in a few seconds.`);
         }
