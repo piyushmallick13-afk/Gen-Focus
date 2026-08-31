@@ -7,8 +7,5 @@ service cloud.firestore {
     match /nav_links/{linkId} {
       allow read, write: if true;
     }
-    match /settings/{settingId} {
-      allow read, write: if true;
-    }
   }
 }

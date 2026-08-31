@@ -126,22 +126,13 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
         </p>
         
         <div className="mt-auto">
-          {product.status === 'coming-soon' ? (
-            <button
-              disabled
-              className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-stone-100 text-stone-500 text-sm font-medium rounded-xl border border-stone-200 cursor-not-allowed"
-            >
-              <span>Coming Soon</span>
-            </button>
-          ) : (
-            <Link
-              to={`/product/${product.id}`}
-              className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-stone-50 hover:bg-stone-100 text-stone-800 text-sm font-medium rounded-xl transition-colors duration-200 border border-stone-200/60"
-            >
-              <span>View Details</span>
-              <ArrowRight className="w-4 h-4 text-stone-400" />
-            </Link>
-          )}
+          <Link
+            to={`/product/${product.id}`}
+            className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-stone-50 hover:bg-stone-100 text-stone-800 text-sm font-medium rounded-xl transition-colors duration-200 border border-stone-200/60"
+          >
+            <span>View Details</span>
+            <ArrowRight className="w-4 h-4 text-stone-400" />
+          </Link>
         </div>
       </div>
     </div>

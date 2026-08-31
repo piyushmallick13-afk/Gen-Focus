@@ -1,7 +1,7 @@
 import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useNavLinks } from '../hooks/useNavLinks';
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { allCategories } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -74,7 +74,7 @@ export default function Header() {
     : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-slate-50/80 backdrop-blur-md border-b border-stone-200/50">
+    <header className="sticky top-0 z-50 w-full bg-[#FAFAFA]/80 backdrop-blur-md border-b border-stone-200/50">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
@@ -90,7 +90,7 @@ export default function Header() {
             genfocus
           </span>
         </Link>
-        
+
         <nav className="hidden lg:flex items-center gap-8">
           {exploreLinks.map(link => (
             <Link key={link.id} to={link.url} className="text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
@@ -302,4 +302,3 @@ export default function Header() {
     </header>
   );
 }
-

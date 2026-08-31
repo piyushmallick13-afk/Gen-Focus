@@ -10,7 +10,6 @@ export interface Product {
   category: string;
   imageBgColor?: string;
   rating?: number;
-  status?: 'available' | 'coming-soon';
 }
 
 export interface NavLink {

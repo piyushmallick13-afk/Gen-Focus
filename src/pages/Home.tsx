@@ -2,16 +2,14 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { useProducts } from '../hooks/useProducts';
-import { useSettings } from '../hooks/useSettings';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, ArrowUpZA, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { allCategories } from '../data';
 
 export default function Home() {
   const { products } = useProducts();
-  const { settings } = useSettings();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   const activeCategory = searchParams.get('category') || 'All';
@@ -30,6 +28,32 @@ export default function Home() {
       prev.set('sort', sort);
       return prev;
     });
+  };
+  
+  // Hero Carousel State
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [heroDirection, setHeroDirection] = useState(1);
+  const heroProducts = products.slice(0, 4); // Take top 4 for hero
+
+  useEffect(() => {
+    if (heroProducts.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setHeroDirection(1);
+      setHeroIndex((prev) => (prev + 1) % heroProducts.length);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [heroProducts.length]);
+
+  const handleNextHero = () => {
+    setHeroDirection(1);
+    setHeroIndex((prev) => (prev + 1) % heroProducts.length);
+  };
+  
+  const handlePrevHero = () => {
+    setHeroDirection(-1);
+    setHeroIndex((prev) => (prev - 1 + heroProducts.length) % heroProducts.length);
   };
   
   const categories = ['All', ...allCategories];
@@ -92,38 +116,7 @@ export default function Home() {
               </button>
             </motion.div>
 
-            {(settings.showVideo && settings.videoUrl) ? (
-              <motion.div
-                className="relative lg:ml-auto w-full max-w-xl mx-auto lg:max-w-none lg:w-[90%]"
-                initial={{ opacity: 0, scale: 0.95, rotate: -1 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                transition={{ duration: 1, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.2 }}
-              >
-                <div className="aspect-video md:aspect-[4/3] rounded-3xl overflow-hidden bg-black shadow-2xl shadow-stone-200/50 relative border border-stone-200/50 group">
-                  <video 
-                    src={settings.videoUrl} 
-                    autoPlay 
-                    muted 
-                    loop 
-                    playsInline 
-                    controls
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                {/* Decorative floating elements */}
-                <motion.div 
-                  className="absolute -top-6 -right-6 w-24 h-24 bg-rose-100 rounded-full blur-2xl -z-10"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <motion.div 
-                  className="absolute -bottom-8 -left-8 w-32 h-32 bg-teal-100 rounded-full blur-2xl -z-10"
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.7, 0.5] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                />
-              </motion.div>
-            ) : products.length > 0 && (
+            {products.length > 0 && (
               <motion.div
                 className="relative lg:ml-auto w-full max-w-md mx-auto lg:max-w-none lg:w-[90%]"
                 initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
@@ -133,27 +126,84 @@ export default function Home() {
                 <div className="aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden bg-stone-100 shadow-2xl shadow-stone-200/50 relative border border-white/50 group">
                   <div className="absolute inset-0 bg-gradient-to-tr from-stone-200/40 to-transparent z-10 pointer-events-none mix-blend-overlay" />
                   
-                  <div className="absolute inset-0">
-                    <img 
-                      src={products[0].imageUrl} 
-                      alt={products[0].name}
-                      className="w-full h-full object-cover mix-blend-multiply"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-stone-900/40 to-transparent z-20">
-                      <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-white/50">
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">Featured Product</p>
-                            <h3 className="text-base font-medium text-stone-900 line-clamp-1">{products[0].name}</h3>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-sm font-medium text-stone-900 block">{products[0].price}</span>
-                            {products[0].mrp && <span className="text-xs text-stone-400 line-through">{products[0].mrp}</span>}
+                  {heroProducts.length > 0 ? (
+                  <>
+                  <AnimatePresence initial={false} custom={heroDirection}>
+                    <motion.div
+                      key={heroIndex}
+                      custom={heroDirection}
+                      variants={{
+                        enter: (dir: number) => ({
+                          x: dir > 0 ? '100%' : '-100%',
+                          opacity: 0
+                        }),
+                        center: {
+                          zIndex: 1,
+                          x: 0,
+                          opacity: 1
+                        },
+                        exit: (dir: number) => ({
+                          zIndex: 0,
+                          x: dir < 0 ? '100%' : '-100%',
+                          opacity: 0
+                        })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 }
+                      }}
+                      className="absolute inset-0"
+                    >
+                      <img 
+                        src={heroProducts[heroIndex].imageUrl} 
+                        alt={heroProducts[heroIndex].name}
+                        className="w-full h-full object-cover mix-blend-multiply"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-stone-900/40 to-transparent z-20">
+                        <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-white/50">
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">Featured Product</p>
+                              <h3 className="text-base font-medium text-stone-900 line-clamp-1">{heroProducts[heroIndex].name}</h3>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-sm font-medium text-stone-900 block">{heroProducts[heroIndex].price}</span>
+                              {heroProducts[heroIndex].mrp && <span className="text-xs text-stone-400 line-through">{heroProducts[heroIndex].mrp}</span>}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Navigation Arrows */}
+                  {heroProducts.length > 1 && (
+                  <div className="absolute top-1/2 -translate-y-1/2 left-3 right-3 flex justify-between z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button 
+                      onClick={handlePrevHero} 
+                      className="p-2 bg-white/70 hover:bg-white backdrop-blur rounded-full shadow-sm transition-colors text-stone-800"
+                      aria-label="Previous product"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={handleNextHero} 
+                      className="p-2 bg-white/70 hover:bg-white backdrop-blur rounded-full shadow-sm transition-colors text-stone-800"
+                      aria-label="Next product"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
                   </div>
+                  )}
+                  </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-stone-400">
+                      <p>No products available</p>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Decorative floating elements */}
