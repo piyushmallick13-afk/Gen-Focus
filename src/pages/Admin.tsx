@@ -163,7 +163,7 @@ export default function Admin() {
       formData.append('video', videoFile);
       
       try {
-        const response = await fetch('/api/upload', {
+        const response = await fetch('/upload-video', {
           method: 'POST',
           body: formData,
         });
@@ -179,6 +179,9 @@ export default function Admin() {
           const text = await response.text();
           if (response.status === 413) {
             throw new Error('File is too large for the server configuration. Please try a smaller video.');
+          }
+          if (response.status === 404) {
+             throw new Error('Upload endpoint not found (404). The server might be still starting up, or this feature is not supported in the current hosting environment.');
           }
           throw new Error(`Upload failed with status ${response.status}. The server may be restarting, please try again in a few seconds.`);
         }
