@@ -168,13 +168,20 @@ export default function Admin() {
           body: formData,
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Upload failed');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Upload failed');
+          }
+          currentVideoUrl = data.url;
+        } else {
+          const text = await response.text();
+          if (response.status === 413) {
+            throw new Error('File is too large for the server configuration. Please try a smaller video.');
+          }
+          throw new Error(`Upload failed with status ${response.status}. The server may be restarting, please try again in a few seconds.`);
         }
-        
-        currentVideoUrl = data.url;
         setSettingsFormData(prev => ({ ...prev, videoUrl: currentVideoUrl }));
         setVideoFile(null); // Clear selected file after upload
       } catch (err: any) {
