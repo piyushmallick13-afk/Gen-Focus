@@ -22,6 +22,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
             alt={product.name}
             className="h-full w-full object-cover object-center mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"
+            onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
           />
         </Link>
         

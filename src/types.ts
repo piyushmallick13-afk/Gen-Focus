@@ -6,6 +6,7 @@ export interface Product {
   mrp?: string;
   discount?: string;
   imageUrl: string;
+  additionalImages?: string[];
   affiliateUrl: string;
   category: string;
   imageBgColor?: string;
@@ -19,4 +20,14 @@ export interface NavLink {
   label: string;
   url: string;
   section: 'explore' | 'legal';
+}
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  name: string;
+  price: string;
+  imageUrl: string;
+  quantity: number;
+  size?: string;
 }

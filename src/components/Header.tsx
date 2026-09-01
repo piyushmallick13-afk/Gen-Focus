@@ -1,10 +1,11 @@
-import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown } from 'lucide-react';
+import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useNavLinks } from '../hooks/useNavLinks';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { allCategories } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCart } from '../contexts/CartContext';
 
 export default function Header() {
   const { links } = useNavLinks();
@@ -21,6 +22,9 @@ export default function Header() {
   const { products } = useProducts();
   const searchRef = useRef<HTMLFormElement>(null);
   
+  const { cart, setIsCartOpen } = useCart();
+  const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
   const categories = ['All', ...allCategories];
 
   const handleCategoryChange = (category: string) => {
@@ -157,6 +161,19 @@ export default function Header() {
               <Search className="w-5 h-5" />
             </button>
           )}
+
+          <button 
+            onClick={() => setIsCartOpen(true)} 
+            className="p-2 text-stone-600 hover:text-stone-900 transition-colors relative"
+            aria-label="Cart"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            {cartItemCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-stone-900 text-white text-[10px] font-bold flex items-center justify-center rounded-full pointer-events-none">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 

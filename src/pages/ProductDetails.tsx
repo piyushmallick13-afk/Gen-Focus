@@ -1,10 +1,12 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useRazorpay } from '../hooks/useRazorpay';
-import { ArrowLeft, ExternalLink, Star, IndianRupee, CreditCard, X, Ruler } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, ExternalLink, Star, IndianRupee, CreditCard, X, Ruler, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { useCart } from '../contexts/CartContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 declare global {
   interface Window {
@@ -14,6 +16,7 @@ declare global {
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { products } = useProducts();
   const isRazorpayLoaded = useRazorpay();
   
@@ -21,73 +24,52 @@ export default function ProductDetails() {
 
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [showSizeChart, setShowSizeChart] = useState(false);
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [userInfo, setUserInfo] = useState({
-    firstName: '',
-    lastName: '',
-    address: '',
-    phone: '',
-    email: ''
-  });
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  const { addToCart } = useCart();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+
+  const allImages = [product.imageUrl, ...(product.additionalImages || [])];
+
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+
+  const handleAddToCart = () => {
+    if (product.hasSizes && !selectedSize) {
+      alert("Please select a size first.");
+      return;
+    }
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      quantity: 1,
+      size: selectedSize || undefined
+    });
+  };
 
   const handleBuyClick = () => {
     if (product?.hasSizes && !selectedSize) {
       alert("Please select a size first.");
       return;
     }
-    setShowCheckoutModal(true);
-  };
-
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    startRazorpay();
-    setShowCheckoutModal(false);
-  };
-
-  const startRazorpay = () => {
-    if (!product || !isRazorpayLoaded) return;
-
-    const rawPrice = product.price.replace(/[^\d.]/g, '');
-    const priceNum = parseFloat(rawPrice);
-    if (isNaN(priceNum)) {
-      alert("Invalid price configuration.");
-      return;
-    }
-
-    const amountInPaise = Math.round(priceNum * 100);
-
-    const options = {
-      key: 'rzp_live_TWoUc5H0CdNOdB',
-      amount: amountInPaise.toString(),
-      currency: "INR",
-      name: "Your Store",
-      description: `Purchase of ${product.name}`,
-      image: product.imageUrl,
-      handler: function (response: any) {
-        alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
-      },
-      prefill: {
-        name: `${userInfo.firstName} ${userInfo.lastName}`,
-        email: userInfo.email,
-        contact: userInfo.phone
-      },
-      notes: {
-        address: userInfo.address,
-        size: selectedSize || 'N/A'
-      },
-      theme: {
-        color: "#1c1917" // stone-900
-      }
-    };
-
-    const rzp = new window.Razorpay(options);
-    rzp.on('payment.failed', function (response: any) {
-      alert(`Payment failed. Reason: ${response.error.description}`);
+    
+    // Add to cart and immediately proceed to checkout
+    addToCart({
+      productId: product!.id,
+      name: product!.name,
+      price: product!.price,
+      imageUrl: product!.imageUrl,
+      quantity: 1,
+      size: selectedSize || undefined
     });
-    rzp.open();
+    
+    navigate('/checkout');
   };
+
 
   if (!product) {
     return (
@@ -125,12 +107,47 @@ export default function ProductDetails() {
                 {product.discount} OFF
               </div>
             )}
-            <img 
-              src={product.imageUrl} 
-              alt={product.name}
-              className="w-full h-full object-contain mix-blend-multiply drop-shadow-xl"
-              referrerPolicy="no-referrer"
-            />
+            
+            <AnimatePresence mode="wait">
+              <motion.img 
+                key={currentImageIndex}
+                src={allImages[currentImageIndex]} 
+                alt={`${product.name} - view ${currentImageIndex + 1}`}
+                className="w-full h-full object-contain mix-blend-multiply drop-shadow-xl"
+                referrerPolicy="no-referrer"
+                onError={(e: any) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
+                initial={{ x: 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -100, opacity: 0 }}
+                transition={{ duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}
+              />
+            </AnimatePresence>
+
+            {allImages.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-4 p-2 bg-white/80 hover:bg-white backdrop-blur rounded-full text-stone-800 shadow-sm transition-all z-20"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={nextImage}
+                  className="absolute right-4 p-2 bg-white/80 hover:bg-white backdrop-blur rounded-full text-stone-800 shadow-sm transition-all z-20"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+                <div className="absolute bottom-6 flex gap-2 z-20">
+                  {allImages.map((_, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex ? 'bg-stone-800 w-6' : 'bg-stone-400 hover:bg-stone-600'}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           
           {/* Product Info */}
@@ -195,6 +212,14 @@ export default function ProductDetails() {
             )}
             
             <div className="flex flex-col sm:flex-row gap-4 mt-auto border-t border-stone-200/60 pt-8">
+              <button 
+                onClick={handleAddToCart}
+                className="flex-1 inline-flex items-center justify-center gap-3 h-14 border border-stone-200 bg-white hover:bg-stone-50 text-stone-900 font-medium rounded-xl transition-colors duration-200 text-lg px-8 cursor-pointer"
+              >
+                <span>Add to Cart</span>
+                <ShoppingCart className="w-5 h-5 opacity-70" />
+              </button>
+              
               {product.type === 'buy' ? (
                 <button 
                   onClick={handleBuyClick}
@@ -211,7 +236,7 @@ export default function ProductDetails() {
                   rel="noopener noreferrer"
                   className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
                 >
-                  <span>Purchase Product</span>
+                  <span>Purchase</span>
                   <ExternalLink className="w-5 h-5 opacity-70" />
                 </a>
               )}
@@ -225,55 +250,10 @@ export default function ProductDetails() {
         </div>
       </main>
 
-      {/* Checkout Info Modal */}
-      {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
-              <h3 className="font-medium text-stone-900">Shipping & Contact Details</h3>
-              <button onClick={() => setShowCheckoutModal(false)} className="p-1 text-stone-400 hover:text-stone-700 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCheckoutSubmit} className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1">First Name</label>
-                  <input required type="text" value={userInfo.firstName} onChange={e => setUserInfo({...userInfo, firstName: e.target.value})} className="w-full h-10 px-3 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-stone-500 mb-1">Last Name</label>
-                  <input required type="text" value={userInfo.lastName} onChange={e => setUserInfo({...userInfo, lastName: e.target.value})} className="w-full h-10 px-3 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900" />
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-stone-500 mb-1">Email Address</label>
-                <input required type="email" value={userInfo.email} onChange={e => setUserInfo({...userInfo, email: e.target.value})} className="w-full h-10 px-3 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900" />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-stone-500 mb-1">Phone Number</label>
-                <input required type="tel" value={userInfo.phone} onChange={e => setUserInfo({...userInfo, phone: e.target.value})} className="w-full h-10 px-3 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900" />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-xs font-medium text-stone-500 mb-1">Delivery Address</label>
-                <textarea required rows={3} value={userInfo.address} onChange={e => setUserInfo({...userInfo, address: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900 resize-none" />
-              </div>
-
-              <button type="submit" className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors">
-                Proceed to Payment
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Size Chart Modal */}
       {showSizeChart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
               <h3 className="font-medium text-stone-900">Size Guide</h3>
               <button onClick={() => setShowSizeChart(false)} className="p-1 text-stone-400 hover:text-stone-700 transition-colors">

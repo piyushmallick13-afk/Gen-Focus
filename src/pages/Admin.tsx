@@ -3,7 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
-import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2, X } from 'lucide-react';
 import { NavLink } from '../types';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -32,6 +32,7 @@ export default function Admin() {
     rating: string;
     type: 'affiliate' | 'buy';
     hasSizes: boolean;
+    additionalImages: string[];
   }>({
     name: '',
     description: '',
@@ -44,7 +45,8 @@ export default function Admin() {
     imageBgColor: 'bg-stone-100',
     rating: '',
     type: 'affiliate',
-    hasSizes: false
+    hasSizes: false,
+    additionalImages: []
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -64,6 +66,11 @@ export default function Admin() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      alert("Unsupported file format. Please upload a valid image file (e.g., JPG, PNG, WEBP).");
+      return;
+    }
+
     // Check size
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
@@ -77,26 +84,77 @@ export default function Admin() {
     setIsUploading(true);
 
     try {
-      // Compress the image to speed up upload drastically
+      // Compress the image to a smaller size to store directly in Firestore
       const options = {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
+        maxSizeMB: 0.15, // Keep small to fit in Firestore doc limit
+        maxWidthOrHeight: 800,
+        useWebWorker: false, // Avoid WebWorker issues in sandbox
       };
       
       const compressedFile = await imageCompression(file, options);
-
-      const storageRef = ref(storage, `products/${Date.now()}_${compressedFile.name}`);
-      await uploadBytes(storageRef, compressedFile);
-      const url = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, imageUrl: url })); // Update with actual URL
+      
+      // Convert to Base64 directly (bypasses need for Firebase Storage setup/rules)
+      const base64String = await imageCompression.getDataUrlFromFile(compressedFile);
+      
+      setFormData(prev => ({ ...prev, imageUrl: base64String })); 
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Failed to upload image. Please make sure Firebase storage rules allow uploads, or you are logged in.");
+      let errorMessage = "Failed to upload image. Please make sure it is a supported image format and try again.";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      alert(errorMessage);
       setFormData(prev => ({ ...prev, imageUrl: '' })); // Revert on failure
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert("Unsupported file format. Please upload a valid image file.");
+      return;
+    }
+
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 5) {
+      alert("Image size exceeds maximum limit of 5MB.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const options = {
+        maxSizeMB: 0.15,
+        maxWidthOrHeight: 800,
+        useWebWorker: false,
+      };
+      const compressedFile = await imageCompression(file, options);
+      const base64String = await imageCompression.getDataUrlFromFile(compressedFile);
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        additionalImages: [...(prev.additionalImages || []), base64String] 
+      })); 
+    } catch (err) {
+      console.error("Upload failed", err);
+      let errorMessage = "Failed to upload image. Please try again.";
+      if (err instanceof Error) errorMessage = err.message;
+      alert(errorMessage);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveAdditionalImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalImages: prev.additionalImages.filter((_, i) => i !== index)
+    }));
   };
 
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -134,7 +192,8 @@ export default function Admin() {
       imageBgColor: 'bg-stone-100',
       rating: '',
       type: 'affiliate',
-      hasSizes: false
+      hasSizes: false,
+      additionalImages: []
     });
   };
 
@@ -175,7 +234,8 @@ export default function Admin() {
       imageBgColor: product.imageBgColor || 'bg-stone-100',
       rating: product.rating ? product.rating.toString() : '',
       type: product.type || 'affiliate',
-      hasSizes: product.hasSizes || false
+      hasSizes: product.hasSizes || false,
+      additionalImages: product.additionalImages || []
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -348,14 +408,37 @@ export default function Admin() {
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                       </label>
                       {formData.imageUrl && (
-                        <div className="h-10 w-10 rounded overflow-hidden border border-stone-200 shrink-0">
-                          <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="h-10 w-10 rounded overflow-hidden border border-stone-200 shrink-0 bg-stone-50">
+                          <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
                         </div>
                       )}
                     </div>
                     {!formData.imageUrl && (
                        <p className="text-xs text-stone-500 mt-1">Image size: 2MB - 5MB limit.</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Additional Images (Optional)</label>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors">
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        <span className="text-sm font-medium text-stone-700">Add Image</span>
+                        <input type="file" accept="image/*" onChange={handleAdditionalImageUpload} className="hidden" />
+                      </label>
+                      {formData.additionalImages?.map((img, idx) => (
+                        <div key={idx} className="relative h-12 w-12 rounded overflow-hidden border border-stone-200 shrink-0 bg-stone-50 group">
+                          <img src={img} alt="Additional Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdditionalImage(idx)}
+                            className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -414,7 +497,7 @@ export default function Admin() {
                   {products.map(product => (
                     <li key={product.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-stone-50 transition-colors">
                       <div className={`w-16 h-16 rounded-lg ${product.imageBgColor || 'bg-stone-100'} flex-shrink-0 overflow-hidden relative`}>
-                        <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" />
+                        <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
                       </div>
                       <div className="flex-grow min-w-0">
                         <h3 className="text-sm font-medium text-stone-800 truncate">{product.name}</h3>

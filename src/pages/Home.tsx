@@ -161,6 +161,7 @@ export default function Home() {
                         src={heroProducts[heroIndex].imageUrl} 
                         alt={heroProducts[heroIndex].name}
                         className="w-full h-full object-cover mix-blend-multiply"
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
                       />
                       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-stone-900/40 to-transparent z-20">
                         <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-white/50">
