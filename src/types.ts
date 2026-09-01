@@ -11,6 +11,7 @@ export interface Product {
   imageBgColor?: string;
   rating?: number;
   type?: 'affiliate' | 'buy';
+  hasSizes?: boolean;
 }
 
 export interface NavLink {

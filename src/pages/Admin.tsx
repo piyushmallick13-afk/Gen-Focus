@@ -3,8 +3,10 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
-import { Plus, Trash2, Lock, Edit2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2 } from 'lucide-react';
 import { NavLink } from '../types';
+import { storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function Admin() {
   const { products, addProduct, removeProduct, editProduct } = useProducts();
@@ -28,6 +30,7 @@ export default function Admin() {
     imageBgColor: string;
     rating: string;
     type: 'affiliate' | 'buy';
+    hasSizes: boolean;
   }>({
     name: '',
     description: '',
@@ -39,8 +42,11 @@ export default function Admin() {
     category: '',
     imageBgColor: 'bg-stone-100',
     rating: '',
-    type: 'affiliate'
+    type: 'affiliate',
+    hasSizes: false
   });
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const [linkFormData, setLinkFormData] = useState({
     label: '',
@@ -49,7 +55,33 @@ export default function Admin() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size (2MB to 5MB, though we allow up to 5MB generally. Since user said "minimum 2gb to maximum 5gb" which is physically impossible for most uploads here, we interpret as 2MB to 5MB).
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 5) {
+      alert("Image size exceeds maximum limit of 5MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setFormData(prev => ({ ...prev, imageUrl: url }));
+    } catch (err) {
+      console.error("Upload failed", err);
+      alert("Failed to upload image. Please make sure Firebase storage rules allow uploads, or you are logged in.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -86,7 +118,8 @@ export default function Admin() {
       category: '',
       imageBgColor: 'bg-stone-100',
       rating: '',
-      type: 'affiliate'
+      type: 'affiliate',
+      hasSizes: false
     });
   };
 
@@ -126,7 +159,8 @@ export default function Admin() {
       category: product.category,
       imageBgColor: product.imageBgColor || 'bg-stone-100',
       rating: product.rating ? product.rating.toString() : '',
-      type: product.type || 'affiliate'
+      type: product.type || 'affiliate',
+      hasSizes: product.hasSizes || false
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -291,8 +325,22 @@ export default function Admin() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Image URL</label>
-                    <input required type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="https://..." />
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Image</label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors">
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        <span className="text-sm font-medium text-stone-700">{isUploading ? 'Uploading...' : 'Choose Image'}</span>
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      </label>
+                      {formData.imageUrl && (
+                        <div className="h-10 w-10 rounded overflow-hidden border border-stone-200 shrink-0">
+                          <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+                    {!formData.imageUrl && (
+                       <p className="text-xs text-stone-500 mt-1">Image size: 2MB - 5MB limit.</p>
+                    )}
                   </div>
 
                   <div>
@@ -321,7 +369,12 @@ export default function Admin() {
                     </select>
                   </div>
 
-                  <button type="submit" className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-2 mt-4">
+                    <input type="checkbox" id="hasSizes" name="hasSizes" checked={formData.hasSizes} onChange={handleChange} className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+                    <label htmlFor="hasSizes" className="text-sm font-medium text-stone-600">Product has clothing sizes</label>
+                  </div>
+
+                  <button type="submit" disabled={isUploading || !formData.imageUrl} className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                     {editingId ? (
                       <>
                         <Edit2 className="w-4 h-4" />

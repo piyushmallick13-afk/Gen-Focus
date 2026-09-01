@@ -1,5 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0953954735",
@@ -10,5 +11,8 @@ const firebaseConfig = {
   messagingSenderId: "1063857725907"
 };
 
-export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, "ai-studio-genfocus-4421d6d5-bcda-4688-86d7-92ea1e9faec9");
+export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true
+}, "ai-studio-genfocus-4421d6d5-bcda-4688-86d7-92ea1e9faec9");
+export const storage = getStorage(app);
