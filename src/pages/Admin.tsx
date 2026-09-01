@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
@@ -8,7 +7,6 @@ import { Plus, Trash2, Lock, Edit2, Link as LinkIcon } from 'lucide-react';
 import { NavLink } from '../types';
 
 export default function Admin() {
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const { products, addProduct, removeProduct, editProduct } = useProducts();
   const { links, addLink, removeLink, editLink } = useNavLinks();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -18,7 +16,19 @@ export default function Admin() {
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'products' | 'links'>('products');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    mrp: string;
+    discount: string;
+    imageUrl: string;
+    affiliateUrl: string;
+    category: string;
+    imageBgColor: string;
+    rating: string;
+    type: 'affiliate' | 'buy';
+  }>({
     name: '',
     description: '',
     price: '',
@@ -28,7 +38,8 @@ export default function Admin() {
     affiliateUrl: '',
     category: '',
     imageBgColor: 'bg-stone-100',
-    rating: ''
+    rating: '',
+    type: 'affiliate'
   });
 
   const [linkFormData, setLinkFormData] = useState({
@@ -74,7 +85,8 @@ export default function Admin() {
       affiliateUrl: '',
       category: '',
       imageBgColor: 'bg-stone-100',
-      rating: ''
+      rating: '',
+      type: 'affiliate'
     });
   };
 
@@ -113,7 +125,8 @@ export default function Admin() {
       affiliateUrl: product.affiliateUrl,
       category: product.category,
       imageBgColor: product.imageBgColor || 'bg-stone-100',
-      rating: product.rating ? product.rating.toString() : ''
+      rating: product.rating ? product.rating.toString() : '',
+      type: product.type || 'affiliate'
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -130,27 +143,11 @@ export default function Admin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!executeRecaptcha) {
-      setError('reCAPTCHA not ready. Please try again.');
-      return;
-    }
-
-    try {
-      const token = await executeRecaptcha('admin_login');
-      if (!token) {
-        setError('Failed to verify reCAPTCHA.');
-        return;
-      }
-      
-      // Basic login logic here. In a real app, you'd send `token` and `pin` to a backend
-      if (pin === '@%Ben') {
-        setIsAuthenticated(true);
-        setError('');
-      } else {
-        setError('Incorrect PIN. Please try again.');
-      }
-    } catch (err) {
-      setError('Error verifying reCAPTCHA.');
+    if (pin === '@%Ben') {
+      setIsAuthenticated(true);
+      setError('');
+    } else {
+      setError('Incorrect PIN. Please try again.');
     }
   };
 
@@ -299,9 +296,19 @@ export default function Admin() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Affiliate Link</label>
-                    <input required type="url" name="affiliateUrl" value={formData.affiliateUrl} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="https://amazon.com/..." />
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Type</label>
+                    <select required name="type" value={formData.type} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10">
+                      <option value="affiliate">Affiliate Product (External Link)</option>
+                      <option value="buy">Direct Buy (Razorpay Checkout)</option>
+                    </select>
                   </div>
+
+                  {formData.type === 'affiliate' && (
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">Affiliate Link</label>
+                      <input required={formData.type === 'affiliate'} type="url" name="affiliateUrl" value={formData.affiliateUrl} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="https://amazon.com/..." />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1">Background Color Class</label>
@@ -348,9 +355,13 @@ export default function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                        <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-stone-500 hover:text-stone-800 underline truncate max-w-[150px]">
-                          View Link
-                        </a>
+                        {product.type === 'buy' ? (
+                          <span className="text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded">Buy Now</span>
+                        ) : (
+                          <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-stone-500 hover:text-stone-800 underline truncate max-w-[150px]">
+                            View Link
+                          </a>
+                        )}
                         <button onClick={() => handleEditClick(product)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" title="Edit Product">
                           <Edit2 className="w-4 h-4" />
                         </button>

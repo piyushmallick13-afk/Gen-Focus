@@ -10,6 +10,7 @@ export interface Product {
   category: string;
   imageBgColor?: string;
   rating?: number;
+  type?: 'affiliate' | 'buy';
 }
 
 export interface NavLink {

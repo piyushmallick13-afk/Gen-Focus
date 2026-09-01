@@ -2,13 +2,61 @@ import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
-import { ArrowLeft, ExternalLink, Star, IndianRupee } from 'lucide-react';
+import { useRazorpay } from '../hooks/useRazorpay';
+import { ArrowLeft, ExternalLink, Star, IndianRupee, CreditCard } from 'lucide-react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const { products } = useProducts();
+  const isRazorpayLoaded = useRazorpay();
   
   const product = products.find(p => p.id === id);
+
+  const handleBuyNow = () => {
+    if (!product || !isRazorpayLoaded) return;
+
+    // Remove any non-numeric characters except dots for price calculation
+    const rawPrice = product.price.replace(/[^\d.]/g, '');
+    const priceNum = parseFloat(rawPrice);
+    if (isNaN(priceNum)) {
+      alert("Invalid price configuration.");
+      return;
+    }
+
+    const amountInPaise = Math.round(priceNum * 100);
+
+    const options = {
+      key: 'rzp_live_TWoUc5H0CdNOdB',
+      amount: amountInPaise.toString(),
+      currency: "INR",
+      name: "Your Store",
+      description: `Purchase of ${product.name}`,
+      image: product.imageUrl,
+      handler: function (response: any) {
+        alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
+      },
+      prefill: {
+        name: "Customer Name",
+        email: "customer@example.com",
+        contact: "9999999999"
+      },
+      theme: {
+        color: "#1c1917" // stone-900
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', function (response: any) {
+      alert(`Payment failed. Reason: ${response.error.description}`);
+    });
+    rzp.open();
+  };
 
   if (!product) {
     return (
@@ -93,18 +141,31 @@ export default function ProductDetails() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 mt-auto border-t border-stone-200/60 pt-8">
-              <a 
-                href={product.affiliateUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
-              >
-                <span>Purchase Product</span>
-                <ExternalLink className="w-5 h-5 opacity-70" />
-              </a>
+              {product.type === 'buy' ? (
+                <button 
+                  onClick={handleBuyNow}
+                  disabled={!isRazorpayLoaded}
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8 cursor-pointer"
+                >
+                  <span>Buy Now</span>
+                  <CreditCard className="w-5 h-5 opacity-70" />
+                </button>
+              ) : (
+                <a 
+                  href={product.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
+                >
+                  <span>Purchase Product</span>
+                  <ExternalLink className="w-5 h-5 opacity-70" />
+                </a>
+              )}
             </div>
             <p className="text-xs text-stone-400 mt-4 text-center sm:text-left font-light">
-              You will be redirected to our trusted partner to complete your purchase.
+              {product.type === 'buy' 
+                ? "Secure payments powered by Razorpay."
+                : "You will be redirected to our trusted partner to complete your purchase."}
             </p>
           </div>
         </div>
