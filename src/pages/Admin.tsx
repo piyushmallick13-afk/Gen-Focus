@@ -7,6 +7,7 @@ import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2 } from 'lu
 import { NavLink } from '../types';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import imageCompression from 'browser-image-compression';
 
 export default function Admin() {
   const { products, addProduct, removeProduct, editProduct } = useProducts();
@@ -63,22 +64,36 @@ export default function Admin() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size (2MB to 5MB, though we allow up to 5MB generally. Since user said "minimum 2gb to maximum 5gb" which is physically impossible for most uploads here, we interpret as 2MB to 5MB).
+    // Check size
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
       alert("Image size exceeds maximum limit of 5MB.");
       return;
     }
 
+    // Immediately show a local preview to make UI feel instant
+    const localPreviewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, imageUrl: localPreviewUrl }));
     setIsUploading(true);
+
     try {
-      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
+      // Compress the image to speed up upload drastically
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+
+      const storageRef = ref(storage, `products/${Date.now()}_${compressedFile.name}`);
+      await uploadBytes(storageRef, compressedFile);
       const url = await getDownloadURL(storageRef);
-      setFormData(prev => ({ ...prev, imageUrl: url }));
+      setFormData(prev => ({ ...prev, imageUrl: url })); // Update with actual URL
     } catch (err) {
       console.error("Upload failed", err);
       alert("Failed to upload image. Please make sure Firebase storage rules allow uploads, or you are logged in.");
+      setFormData(prev => ({ ...prev, imageUrl: '' })); // Revert on failure
     } finally {
       setIsUploading(false);
     }
