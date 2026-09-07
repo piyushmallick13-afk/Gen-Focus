@@ -31,6 +31,24 @@ export default function ProductDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
 
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-display font-medium text-stone-800 mb-4">Product not found</h2>
+            <Link to="/" className="text-stone-500 hover:text-stone-900 flex items-center gap-2 justify-center">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Collection
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const allImages = [product.imageUrl, ...(product.additionalImages || [])];
 
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
@@ -71,23 +89,6 @@ export default function ProductDetails() {
   };
 
 
-  if (!product) {
-    return (
-      <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-display font-medium text-stone-800 mb-4">Product not found</h2>
-            <Link to="/" className="text-stone-500 hover:text-stone-900 flex items-center gap-2 justify-center">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Collection
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
