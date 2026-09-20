@@ -6,7 +6,7 @@ import { useProducts } from '../hooks/useProducts';
 import { allCategories } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCart } from '../contexts/CartContext';
-import { DurgaTrinayani, DhakBeatsController } from './FestiveDurgaMotifs';
+import { DurgaTrinayani } from './FestiveDurgaMotifs';
 import durgaEmblem from '../assets/images/durga_emblem_logo_1789895244534.jpg';
 
 export default function Header() {
@@ -100,8 +100,6 @@ export default function Header() {
               <Sparkles className="w-3 h-3 text-amber-300" />
               View Pujo Specials
             </button>
-            <span className="text-amber-400/40">|</span>
-            <DhakBeatsController />
           </div>
         </div>
       </div>
@@ -165,10 +163,6 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3 relative">
-            <div className="sm:hidden">
-              <DhakBeatsController />
-            </div>
-
             <Link to="/admin" className="p-2 text-stone-600 hover:text-rose-800 transition-colors" title="Admin">
               <Settings className="w-5 h-5" />
             </Link>

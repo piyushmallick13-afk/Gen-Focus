@@ -114,11 +114,37 @@ export function AlponaDivider({ className = "w-full my-6", color = "#B91C1C" }: 
   );
 }
 
-/* Interactive Bengali Dhak Rhythm Synth (No external audio file needed!) */
+/* Interactive Bengali Dhak Rhythm Controller with authentic recorded Dhak audio sample */
 export function DhakBeatsController() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Instantiate actual audio element for the recorded Dhak sound sample
+    const audio = new Audio('/durga-puja-dhak.wav');
+    audio.loop = true;
+    audio.volume = 0.85;
+    audioRef.current = audio;
+
+    const handleEnded = () => setIsPlaying(false);
+    const handleError = () => {
+      // If audio file playback encounters an issue, fallback synthesis is available
+      console.warn('Audio file playback fallback to Web Audio synthesis');
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+    };
+  }, []);
 
   const playDhakHit = (ctx: AudioContext, frequency: number, decay: number, isAccent = false) => {
     const osc = ctx.createOscillator();
@@ -128,7 +154,6 @@ export function DhakBeatsController() {
     osc.frequency.setValueAtTime(frequency, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(frequency * 0.35, ctx.currentTime + decay);
 
-    // Initial punch
     gain.gain.setValueAtTime(isAccent ? 0.6 : 0.4, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + decay);
 
@@ -157,85 +182,100 @@ export function DhakBeatsController() {
     osc.stop(ctx.currentTime + 0.04);
   };
 
+  const startFallbackSynth = () => {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+
+    let step = 0;
+    const tempoMs = 175;
+
+    intervalRef.current = window.setInterval(() => {
+      if (!ctx || ctx.state === 'closed') return;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      switch (step % 16) {
+        case 0:
+          playDhakHit(ctx, 160, 0.28, true);
+          break;
+        case 2:
+          playKathiClick(ctx);
+          break;
+        case 3:
+          playDhakHit(ctx, 240, 0.12, false);
+          break;
+        case 4:
+          playDhakHit(ctx, 170, 0.24, true);
+          break;
+        case 6:
+          playKathiClick(ctx);
+          break;
+        case 7:
+          playDhakHit(ctx, 250, 0.12, false);
+          break;
+        case 8:
+          playDhakHit(ctx, 180, 0.25, true);
+          break;
+        case 10:
+          playKathiClick(ctx);
+          break;
+        case 11:
+          playDhakHit(ctx, 230, 0.12, false);
+          break;
+        case 12:
+          playDhakHit(ctx, 290, 0.14, false);
+          break;
+        case 14:
+          playDhakHit(ctx, 150, 0.3, true);
+          playKathiClick(ctx);
+          break;
+        default:
+          break;
+      }
+      step++;
+    }, tempoMs);
+  };
+
   const toggleDhak = () => {
     if (isPlaying) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       if (audioCtxRef.current) {
         audioCtxRef.current.close().catch(() => {});
         audioCtxRef.current = null;
       }
       setIsPlaying(false);
     } else {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioContextClass();
-      audioCtxRef.current = ctx;
-
-      // Authentic Bengali Dhak Bol: Dha-kuting, Dha-kuting, Dha-kuting, Tin-Ta (8 beat cycle)
-      let step = 0;
-      const tempoMs = 175; // Festive energetic tempo
-
-      intervalRef.current = window.setInterval(() => {
-        if (!ctx || ctx.state === 'closed') return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        switch (step % 16) {
-          case 0:
-            playDhakHit(ctx, 160, 0.28, true); // Dha (Heavy bass)
-            break;
-          case 2:
-            playKathiClick(ctx); // ku
-            break;
-          case 3:
-            playDhakHit(ctx, 240, 0.12, false); // ting
-            break;
-          case 4:
-            playDhakHit(ctx, 170, 0.24, true); // Dha
-            break;
-          case 6:
-            playKathiClick(ctx);
-            break;
-          case 7:
-            playDhakHit(ctx, 250, 0.12, false);
-            break;
-          case 8:
-            playDhakHit(ctx, 180, 0.25, true); // Dha
-            break;
-          case 10:
-            playKathiClick(ctx);
-            break;
-          case 11:
-            playDhakHit(ctx, 230, 0.12, false);
-            break;
-          case 12:
-            playDhakHit(ctx, 290, 0.14, false); // Tin
-            break;
-          case 14:
-            playDhakHit(ctx, 150, 0.3, true); // Taaa
-            playKathiClick(ctx);
-            break;
-          default:
-            break;
-        }
-        step++;
-      }, tempoMs);
-
-      setIsPlaying(true);
+      if (audioRef.current) {
+        audioRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn('Audio play failed, falling back to Web Audio:', err);
+            startFallbackSynth();
+            setIsPlaying(true);
+          });
+      } else {
+        startFallbackSynth();
+        setIsPlaying(true);
+      }
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
-    };
-  }, []);
 
   return (
     <button
       onClick={toggleDhak}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border shadow-sm ${
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border shadow-sm cursor-pointer ${
         isPlaying
-          ? 'bg-rose-600 text-white border-rose-700 shadow-rose-200 animate-pulse'
+          ? 'bg-rose-600 text-white border-rose-700 shadow-rose-200 ring-2 ring-rose-300 animate-pulse'
           : 'bg-amber-50 text-amber-900 border-amber-200/80 hover:bg-amber-100 hover:border-amber-300'
       }`}
       title={isPlaying ? "Mute Dhak Beats" : "Listen to traditional Durga Puja Dhak rhythm"}
@@ -347,7 +387,6 @@ export function PujoDaysTabStrip({
             </p>
           </div>
         </div>
-        <DhakBeatsController />
       </div>
 
       {/* Tabs */}

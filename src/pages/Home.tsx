@@ -8,7 +8,27 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowDownAZ, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
 import { allCategories } from '../data';
 import { DurgaTrinayani, AlponaDivider, PujoDaysTabStrip, PUJO_DAYS, PujoDayInfo, DhakIcon, DhunuchiIcon } from '../components/FestiveDurgaMotifs';
-import durgaHeroBanner from '../assets/images/durga_puja_festive_hero_1789895231868.jpg';
+import durgaHeroBanner1 from '../assets/images/maa_durga_idol_1789896319106.jpg';
+import durgaHeroBanner2 from '../assets/images/maa_durga_kumartuli_1789897032472.jpg';
+import durgaHeroBanner3 from '../assets/images/durga_puja_festive_hero_1789895231868.jpg';
+
+const durgaSlideImages = [
+  {
+    src: durgaHeroBanner1,
+    title: 'Goddess Maa Durga Pratima',
+    subtitle: 'Mahisasuramardini • দিব্য দশভুজা রূপ',
+  },
+  {
+    src: durgaHeroBanner2,
+    title: 'Kumartuli Sacred Artisan Idol',
+    subtitle: 'Traditional Bengali Craftsmanship • কুমারটুলির মৃৎশিল্প',
+  },
+  {
+    src: durgaHeroBanner3,
+    title: 'Dhunuchi Aarti & Devotion',
+    subtitle: 'Divine Festive Evening • আরতি ও ধুনুচি নৃত্য',
+  },
+];
 
 export default function Home() {
   const { products } = useProducts();
@@ -42,11 +62,34 @@ export default function Home() {
     productsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // Hero Carousel State
+  // Hero Product and Image Slider State
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDirection, setHeroDirection] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState(1);
+
   const heroProducts = products.filter(p => p.festiveTag || p.category?.includes('Pujo') || p.category?.includes('Aarti')).slice(0, 4);
   const fallbackHero = heroProducts.length > 0 ? heroProducts : products.slice(0, 4);
+
+  // Automatic slide animation for Maa Durga image showcase
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setSlideDirection(1);
+      setActiveImageIndex((prev) => (prev + 1) % durgaSlideImages.length);
+    }, 4500);
+
+    return () => clearInterval(slideInterval);
+  }, []);
+
+  const handleNextSlide = () => {
+    setSlideDirection(1);
+    setActiveImageIndex((prev) => (prev + 1) % durgaSlideImages.length);
+  };
+
+  const handlePrevSlide = () => {
+    setSlideDirection(-1);
+    setActiveImageIndex((prev) => (prev - 1 + durgaSlideImages.length) % durgaSlideImages.length);
+  };
 
   useEffect(() => {
     if (fallbackHero.length <= 1) return;
@@ -184,14 +227,79 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.2 }}
             >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-300/80 bg-stone-900 group">
-                <img 
-                  src={durgaHeroBanner} 
-                  alt="Durga Puja Artistic Celebration" 
-                  className="w-full h-80 sm:h-96 md:h-[420px] object-cover transition-transform duration-700 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/30 to-transparent pointer-events-none" />
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-300/80 bg-stone-950 group h-80 sm:h-96 md:h-[420px]">
+                {/* Sliding Image Carousel */}
+                <AnimatePresence initial={false} custom={slideDirection}>
+                  <motion.div
+                    key={activeImageIndex}
+                    custom={slideDirection}
+                    initial={{ x: slideDirection > 0 ? '100%' : '-100%', opacity: 0.8 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: slideDirection > 0 ? '-100%' : '100%', opacity: 0.8 }}
+                    transition={{
+                      x: { type: 'spring', stiffness: 280, damping: 32 },
+                      opacity: { duration: 0.35 }
+                    }}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    <img 
+                      src={durgaSlideImages[activeImageIndex].src} 
+                      alt={durgaSlideImages[activeImageIndex].title} 
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Dark Vignette Overlay for Readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-900/35 to-stone-950/20 pointer-events-none z-10" />
+
+                {/* Slide Title Badge & Image Dots */}
+                <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
+                  <div className="bg-stone-950/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-amber-400/30 text-amber-200 text-xs flex items-center gap-2">
+                    <DurgaTrinayani className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <span className="font-medium truncate max-w-[200px] sm:max-w-xs">
+                      {durgaSlideImages[activeImageIndex].title}
+                    </span>
+                  </div>
+
+                  {/* Slide Indicators and Manual Controls */}
+                  <div className="flex items-center gap-1.5 bg-stone-950/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-400/20">
+                    <button
+                      onClick={handlePrevSlide}
+                      className="p-1 text-stone-300 hover:text-amber-200 transition-colors cursor-pointer"
+                      title="Previous Image"
+                      aria-label="Previous image slide"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="flex items-center gap-1 px-1">
+                      {durgaSlideImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSlideDirection(idx > activeImageIndex ? 1 : -1);
+                            setActiveImageIndex(idx);
+                          }}
+                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                            idx === activeImageIndex 
+                              ? 'w-5 bg-amber-400 shadow-sm shadow-amber-400/50' 
+                              : 'w-1.5 bg-stone-500 hover:bg-stone-400'
+                          }`}
+                          aria-label={`Go to slide ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleNextSlide}
+                      className="p-1 text-stone-300 hover:text-amber-200 transition-colors cursor-pointer"
+                      title="Next Image"
+                      aria-label="Next image slide"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
                 {/* Floating Featured Product Overlay */}
                 {fallbackHero.length > 0 && (
