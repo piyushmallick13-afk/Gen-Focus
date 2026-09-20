@@ -5,21 +5,27 @@ import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'fire
 import { db } from '../lib/firebase';
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const productsRef = collection(db, 'products');
     
     const unsubscribe = onSnapshot(productsRef, (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Product));
-      
-      // Sort by ID assuming they are added chronologically or ordered
-      fetchedProducts.sort((a, b) => Number(a.id) - Number(b.id));
-      setProducts(fetchedProducts);
+      if (snapshot.empty) {
+        setProducts(defaultProducts);
+      } else {
+        const fetchedProducts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Product));
+        
+        setProducts(fetchedProducts);
+      }
+      setLoading(false);
+    }, (error) => {
+      console.warn("Firestore listener fallback to default products:", error);
+      setProducts(defaultProducts);
       setLoading(false);
     });
 
