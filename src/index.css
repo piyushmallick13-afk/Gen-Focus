@@ -1,15 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600&family=Noto+Serif+Bengali:wght@400;500;600;700&family=Cinzel:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-bengali: "Noto Serif Bengali", serif;
-  --font-festive: "Cinzel", "Outfit", serif;
   
   --animate-marquee: marquee 25s linear infinite;
   --animate-marquee-ltr: marquee-ltr 25s linear infinite;
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes marquee {
@@ -23,22 +20,8 @@
 }
 
 body {
-  background-color: #FAF7F2;
+  background-color: #FAFAFA;
   color: #292524;
-}
-
-/* Festive gold shimmer text */
-.festive-gold-text {
-  background: linear-gradient(135deg, #B45309 0%, #D97706 50%, #92400E 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Festive crimson gradient */
-.festive-crimson-text {
-  background: linear-gradient(135deg, #991B1B 0%, #DC2626 50%, #7F1D1D 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* Custom Scrollbar for sidebar */

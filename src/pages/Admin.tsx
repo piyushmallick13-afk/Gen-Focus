@@ -5,6 +5,7 @@ import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2, X } from 'lucide-react';
 import { NavLink } from '../types';
+import { allCategories } from '../data';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
@@ -353,44 +354,9 @@ export default function Admin() {
                     <label className="block text-sm font-medium text-stone-600 mb-1">Category</label>
                     <select required name="category" value={formData.category} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10">
                       <option value="" disabled>Select a category</option>
-                      <optgroup label="Electronics & Gadgets">
-                        <option value="Smartphones & Accessories">Smartphones & Accessories</option>
-                        <option value="Computers & Laptops">Computers & Laptops</option>
-                        <option value="Audio & Headphones">Audio & Headphones</option>
-                        <option value="Wearable Technology">Wearable Technology</option>
-                      </optgroup>
-                      <optgroup label="Clothing & Apparel">
-                        <option value="Men's Fashion">Men's Fashion</option>
-                        <option value="Women's Fashion">Women's Fashion</option>
-                        <option value="Kid's Fashion">Kid's Fashion</option>
-                        <option value="Boy's Fashion">Boy's Fashion</option>
-                        <option value="Girl's Fashion">Girl's Fashion</option>
-                        <option value="Footwear">Footwear</option>
-                        <option value="Accessories">Accessories</option>
-                      </optgroup>
-                      <optgroup label="Sports & Fitness">
-                        <option value="Activewear & Apparel">Activewear & Apparel</option>
-                        <option value="Fitness & Training">Fitness & Training</option>
-                        <option value="Outdoor Sports">Outdoor Sports</option>
-                        <option value="Team Sports">Team Sports</option>
-                      </optgroup>
-                      <optgroup label="Home & Living">
-                        <option value="Furniture">Furniture</option>
-                        <option value="Home Decor">Home Decor</option>
-                        <option value="Kitchen & Dining">Kitchen & Dining</option>
-                        <option value="Bed & Bath">Bed & Bath</option>
-                      </optgroup>
-                      <optgroup label="Health & Nutrition">
-                        <option value="Supplements & Vitamins">Supplements & Vitamins</option>
-                        <option value="Personal Care">Personal Care</option>
-                        <option value="Medical Supplies">Medical Supplies</option>
-                      </optgroup>
-                      <optgroup label="Hobbies & Entertainment">
-                        <option value="Gaming">Gaming</option>
-                        <option value="Toys & Collectibles">Toys & Collectibles</option>
-                        <option value="Books & Media">Books & Media</option>
-                        <option value="Smart Toys & Drones">Smart Toys & Drones</option>
-                      </optgroup>
+                      {allCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
 

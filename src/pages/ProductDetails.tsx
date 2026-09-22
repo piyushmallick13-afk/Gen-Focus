@@ -3,11 +3,10 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useRazorpay } from '../hooks/useRazorpay';
-import { ArrowLeft, ExternalLink, Star, IndianRupee, CreditCard, X, Ruler, ShoppingCart, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Star, IndianRupee, CreditCard, X, Ruler, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { DurgaTrinayani } from '../components/FestiveDurgaMotifs';
 
 declare global {
   interface Window {
@@ -50,8 +49,7 @@ export default function ProductDetails() {
     );
   }
 
-  const primaryImage = product.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Product+Image';
-  const allImages = [primaryImage, ...(product.additionalImages || [])];
+  const allImages = [product.imageUrl, ...(product.additionalImages || [])];
 
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
@@ -65,7 +63,7 @@ export default function ProductDetails() {
       productId: product.id,
       name: product.name,
       price: product.price,
-      imageUrl: primaryImage,
+      imageUrl: product.imageUrl,
       quantity: 1,
       size: selectedSize || undefined
     });
@@ -82,7 +80,7 @@ export default function ProductDetails() {
       productId: product!.id,
       name: product!.name,
       price: product!.price,
-      imageUrl: primaryImage,
+      imageUrl: product!.imageUrl,
       quantity: 1,
       size: selectedSize || undefined
     });
@@ -155,73 +153,57 @@ export default function ProductDetails() {
           
           {/* Product Info */}
           <div className="flex flex-col justify-center">
-            {/* Festive badge if applicable */}
-            {product.festiveTag && (
-              <div className="inline-flex items-center gap-2 self-start mb-3 px-3 py-1 rounded-full bg-rose-100 border border-rose-300/80 text-rose-950 text-xs font-semibold shadow-xs">
-                <DurgaTrinayani className="w-4 h-4 text-rose-800 shrink-0" />
-                <span>{product.festiveTag}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 mb-3">
-              <p className="text-xs font-semibold text-amber-900/70 uppercase tracking-widest">{product.category}</p>
+            <div className="flex items-center gap-3 mb-4">
+              <p className="text-sm font-medium text-stone-400 uppercase tracking-widest">{product.category}</p>
               {product.rating && (
-                <div className="flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-xs font-medium">
-                  <Star className="w-3 h-3 fill-current" />
-                  <span>{product.rating}</span>
+                <div className="flex items-center gap-1.5 text-amber-500 bg-amber-50 px-2 py-1 rounded text-xs font-medium">
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>{product.rating} Rating</span>
                 </div>
               )}
             </div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-medium text-stone-900 mb-4 leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-medium text-stone-900 mb-6 leading-tight">
               {product.name}
             </h1>
-
-            {product.pujoDay && (
-              <div className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-amber-900 bg-amber-50/80 border border-amber-200/80 px-3 py-1.5 rounded-xl self-start">
-                <Sparkles className="w-3.5 h-3.5 text-rose-700" />
-                <span>Recommended for <strong>{product.pujoDay}</strong> celebrations</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 mb-6">
-              <p className="text-2xl md:text-3xl font-bold text-rose-950 flex items-center">
-                <IndianRupee className="w-5 h-5 mr-0.5" />
+            <div className="flex items-center gap-3 mb-8">
+              <p className="text-3xl font-medium text-stone-900 flex items-center">
+                <IndianRupee className="w-6 h-6 mr-1" />
                 {product.price.replace('₹', '')}
               </p>
               {product.mrp && (
-                <p className="text-lg font-light text-stone-400 line-through flex items-center">
-                  <IndianRupee className="w-4 h-4" />
+                <p className="text-xl font-light text-stone-400 line-through flex items-center">
+                  <IndianRupee className="w-5 h-5" />
                   {product.mrp.replace('₹', '')}
                 </p>
               )}
               {product.discount && (
-                <span className="bg-rose-50 text-rose-800 text-xs font-bold px-2.5 py-1 rounded-md border border-rose-200">
+                <span className="bg-stone-100 text-stone-800 text-sm font-medium px-2.5 py-1 rounded-md border border-stone-200">
                   {product.discount} OFF
                 </span>
               )}
             </div>
             
-            <div className="prose prose-stone mb-6">
-              <p className="text-stone-600 leading-relaxed font-light text-base">
+            <div className="prose prose-stone mb-8">
+              <p className="text-stone-500 leading-relaxed font-light text-lg">
                 {product.description}
               </p>
             </div>
 
             {/* Size Selector */}
             {product.hasSizes && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-semibold text-stone-900">Select Size</h3>
-                  <button onClick={() => setShowSizeChart(true)} className="text-xs text-rose-800 hover:text-rose-900 font-medium flex items-center gap-1 transition-colors">
-                    <Ruler className="w-3.5 h-3.5" /> Size Chart
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-stone-900">Select Size</h3>
+                  <button onClick={() => setShowSizeChart(true)} className="text-sm text-stone-500 hover:text-stone-900 flex items-center gap-1 transition-colors">
+                    <Ruler className="w-4 h-4" /> Size Chart
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-wrap gap-3">
                   {sizes.map((s) => (
                     <button
                       key={s}
                       onClick={() => setSelectedSize(s)}
-                      className={`h-11 min-w-[2.75rem] px-3.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${selectedSize === s ? 'border-rose-900 bg-rose-900 text-white shadow-sm' : 'border-stone-200 bg-white text-stone-700 hover:border-amber-400 hover:bg-amber-50/50'}`}
+                      className={`h-12 min-w-[3rem] px-4 rounded-xl font-medium transition-all duration-200 border ${selectedSize === s ? 'border-stone-900 bg-stone-900 text-white shadow-md' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:bg-stone-50'}`}
                     >
                       {s}
                     </button>
@@ -230,39 +212,39 @@ export default function ProductDetails() {
               </div>
             )}
             
-            <div className="flex flex-col sm:flex-row gap-3.5 mt-auto border-t border-amber-200/80 pt-6">
+            <div className="flex flex-col sm:flex-row gap-4 mt-auto border-t border-stone-200/60 pt-8">
               <button 
                 onClick={handleAddToCart}
-                className="flex-1 inline-flex items-center justify-center gap-2.5 h-13 border border-amber-300 bg-amber-50/60 hover:bg-amber-100/60 text-stone-900 font-semibold rounded-xl transition-all duration-200 text-base px-6 cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-3 h-14 border border-stone-200 bg-white hover:bg-stone-50 text-stone-900 font-medium rounded-xl transition-colors duration-200 text-lg px-8 cursor-pointer"
               >
                 <span>Add to Cart</span>
-                <ShoppingCart className="w-4 h-4 opacity-80" />
+                <ShoppingCart className="w-5 h-5 opacity-70" />
               </button>
               
               {product.type === 'buy' ? (
                 <button 
                   onClick={handleBuyClick}
                   disabled={!isRazorpayLoaded}
-                  className="flex-1 inline-flex items-center justify-center gap-2.5 h-13 bg-rose-800 hover:bg-rose-900 shadow-md shadow-rose-950/20 disabled:opacity-50 text-white font-semibold rounded-xl transition-all duration-200 text-base px-6 cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8 cursor-pointer"
                 >
-                  <span>Buy Now • Checkout</span>
-                  <CreditCard className="w-4 h-4 text-amber-300" />
+                  <span>Buy Now</span>
+                  <CreditCard className="w-5 h-5 opacity-70" />
                 </button>
               ) : (
                 <a 
                   href={product.affiliateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 inline-flex items-center justify-center gap-2.5 h-13 bg-rose-800 hover:bg-rose-900 text-white font-semibold rounded-xl transition-all duration-200 text-base px-6 shadow-md shadow-rose-950/20"
+                  className="flex-1 inline-flex items-center justify-center gap-3 h-14 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 text-lg px-8"
                 >
                   <span>Purchase</span>
-                  <ExternalLink className="w-4 h-4 opacity-80" />
+                  <ExternalLink className="w-5 h-5 opacity-70" />
                 </a>
               )}
             </div>
-            <p className="text-[11px] text-stone-400 mt-3 text-center sm:text-left font-light">
+            <p className="text-xs text-stone-400 mt-4 text-center sm:text-left font-light">
               {product.type === 'buy' 
-                ? "Fast Pujo express dispatch & secure payments powered by Razorpay."
+                ? "Secure payments powered by Razorpay."
                 : "You will be redirected to our trusted partner to complete your purchase."}
             </p>
           </div>

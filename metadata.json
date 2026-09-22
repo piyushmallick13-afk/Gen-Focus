@@ -1,6 +1,6 @@
 {
   "name": "Genfocus",
-  "description": "Genfocus Durga Puja Festive Edition — Curated Bengali Sharadotsav collection, traditional brassware, Dhunuchi, and pujo looks with fast checkout.",
+  "description": "A curated showcase of premium, minimalist lifestyle products.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

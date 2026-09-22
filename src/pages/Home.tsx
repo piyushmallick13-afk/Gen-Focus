@@ -3,32 +3,10 @@ import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { useProducts } from '../hooks/useProducts';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { allCategories } from '../data';
-import { DurgaTrinayani, AlponaDivider, PujoDaysTabStrip, PUJO_DAYS, PujoDayInfo, DhakIcon, DhunuchiIcon } from '../components/FestiveDurgaMotifs';
-import durgaHeroBanner1 from '../assets/images/maa_durga_idol_1789896319106.jpg';
-import durgaHeroBanner2 from '../assets/images/maa_durga_kumartuli_1789897032472.jpg';
-import durgaHeroBanner3 from '../assets/images/durga_puja_festive_hero_1789895231868.jpg';
-
-const durgaSlideImages = [
-  {
-    src: durgaHeroBanner1,
-    title: 'Goddess Maa Durga Pratima',
-    subtitle: 'Mahisasuramardini • দিব্য দশভুজা রূপ',
-  },
-  {
-    src: durgaHeroBanner2,
-    title: 'Kumartuli Sacred Artisan Idol',
-    subtitle: 'Traditional Bengali Craftsmanship • কুমারটুলির মৃৎশিল্প',
-  },
-  {
-    src: durgaHeroBanner3,
-    title: 'Dhunuchi Aarti & Devotion',
-    subtitle: 'Divine Festive Evening • আরতি ও ধুনুচি নৃত্য',
-  },
-];
 
 export default function Home() {
   const { products } = useProducts();
@@ -37,8 +15,6 @@ export default function Home() {
   const activeCategory = searchParams.get('category') || 'All';
   const sortBy = (searchParams.get('sort') || 'latest') as 'latest' | 'price-asc' | 'price-desc';
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedPujoDay, setSelectedPujoDay] = useState<PujoDayInfo>(PUJO_DAYS[2]); // Default to Ashtami (most celebrated day)
-  const productsSectionRef = useRef<HTMLDivElement>(null);
   
   const handleCategoryChange = (category: string) => {
     setSearchParams(prev => {
@@ -53,83 +29,47 @@ export default function Home() {
       return prev;
     });
   };
-
-  const handleSelectPujoDay = (day: PujoDayInfo) => {
-    setSelectedPujoDay(day);
-    if (day.recommendedCategory) {
-      handleCategoryChange(day.recommendedCategory);
-    }
-    productsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
   
-  // Hero Product and Image Slider State
+  // Hero Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDirection, setHeroDirection] = useState(1);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [slideDirection, setSlideDirection] = useState(1);
-
-  const heroProducts = products.filter(p => p.festiveTag || p.category?.includes('Pujo') || p.category?.includes('Aarti')).slice(0, 4);
-  const fallbackHero = heroProducts.length > 0 ? heroProducts : products.slice(0, 4);
-
-  // Automatic slide animation for Maa Durga image showcase
-  useEffect(() => {
-    const slideInterval = setInterval(() => {
-      setSlideDirection(1);
-      setActiveImageIndex((prev) => (prev + 1) % durgaSlideImages.length);
-    }, 4500);
-
-    return () => clearInterval(slideInterval);
-  }, []);
-
-  const handleNextSlide = () => {
-    setSlideDirection(1);
-    setActiveImageIndex((prev) => (prev + 1) % durgaSlideImages.length);
-  };
-
-  const handlePrevSlide = () => {
-    setSlideDirection(-1);
-    setActiveImageIndex((prev) => (prev - 1 + durgaSlideImages.length) % durgaSlideImages.length);
-  };
+  const allowedCategoriesSet = new Set(allCategories.map(c => c.toLowerCase()));
+  const validProducts = products.filter(p => allowedCategoriesSet.has((p.category || '').toLowerCase()));
+  const heroProducts = validProducts.slice(0, 4); // Take top 4 for hero
 
   useEffect(() => {
-    if (fallbackHero.length <= 1) return;
+    if (heroProducts.length <= 1) return;
     
     const interval = setInterval(() => {
       setHeroDirection(1);
-      setHeroIndex((prev) => (prev + 1) % fallbackHero.length);
-    }, 6000);
+      setHeroIndex((prev) => (prev + 1) % heroProducts.length);
+    }, 5000);
     
     return () => clearInterval(interval);
-  }, [fallbackHero.length]);
+  }, [heroProducts.length]);
 
   const handleNextHero = () => {
     setHeroDirection(1);
-    setHeroIndex((prev) => (prev + 1) % fallbackHero.length);
+    setHeroIndex((prev) => (prev + 1) % heroProducts.length);
   };
   
   const handlePrevHero = () => {
     setHeroDirection(-1);
-    setHeroIndex((prev) => (prev - 1 + fallbackHero.length) % fallbackHero.length);
+    setHeroIndex((prev) => (prev - 1 + heroProducts.length) % heroProducts.length);
   };
   
   const categories = ['All', ...allCategories];
   
   let filteredProducts = activeCategory === 'All' 
-    ? products 
-    : products.filter(p => {
-        if (activeCategory === 'Durga Puja Specials') {
-          return Boolean(p.festiveTag || p.category?.includes('Pujo') || p.category?.includes('Aarti') || p.category?.includes('Mandir') || p.category?.includes('Festive'));
-        }
-        return p.category === activeCategory;
-      });
+    ? validProducts 
+    : validProducts.filter(p => (p.category || '').toLowerCase() === activeCategory.toLowerCase());
 
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filteredProducts = filteredProducts.filter(p => 
       p.name.toLowerCase().includes(q) || 
       p.description.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.festiveTag && p.festiveTag.toLowerCase().includes(q))
+      p.category.toLowerCase().includes(q)
     );
   }
 
@@ -144,322 +84,195 @@ export default function Home() {
     } else if (sortBy === 'price-desc') {
       return parsePrice(b.price) - parsePrice(a.price);
     }
+    // 'latest' - assuming id is timestamp-based or just reversed
     return Number(b.id) - Number(a.id);
   });
   
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#FAF7F2] text-stone-900 selection:bg-rose-900 selection:text-amber-100">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-stone-200 selection:text-stone-900">
       <Header />
       
       <main className="flex-grow">
-        {/* Festive Durga Puja Hero Section */}
-        <section className="relative px-6 py-16 md:py-24 overflow-hidden bg-gradient-to-b from-[#FFFBF5] via-[#FFF8EE] to-[#FAF7F2] border-b border-amber-900/10">
-          {/* Subtle Ambient Festive Glow */}
+        {/* Hero Section */}
+        <section className="relative px-6 py-20 md:py-32 overflow-hidden bg-[#FAFAFA]">
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-[15%] -right-[5%] w-[65%] aspect-square rounded-full bg-rose-200/30 blur-3xl mix-blend-multiply" />
-            <div className="absolute top-[30%] -left-[10%] w-[55%] aspect-square rounded-full bg-amber-200/30 blur-3xl mix-blend-multiply" />
+            <div className="absolute -top-[20%] -right-[10%] w-[70%] aspect-square rounded-full bg-rose-50/40 blur-3xl mix-blend-multiply" />
+            <div className="absolute top-[40%] -left-[10%] w-[50%] aspect-square rounded-full bg-teal-50/40 blur-3xl mix-blend-multiply" />
           </div>
           
-          <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Headline & Festive Text */}
+          <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <motion.div 
-              className="lg:col-span-6 text-center lg:text-left"
+              className="text-center lg:text-left"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-100/80 border border-rose-300 text-rose-900 text-xs font-semibold mb-6 shadow-sm">
-                <DurgaTrinayani className="w-4 h-4 text-rose-800" />
-                <span>শুভ শারদীয়া • SHARADOTSAV 2026</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-medium text-stone-900 tracking-tight mb-6 leading-[1.15]">
-                Welcome Maa Durga with <span className="festive-crimson-text font-bold">Timeless Splendor.</span>
+              <h1 className="text-4xl md:text-6xl font-display font-medium text-stone-900 tracking-tight mb-6 leading-tight">
+                Curated essentials for <br className="hidden md:block" /> intentional living.
               </h1>
-              
-              <p className="text-lg md:text-xl text-stone-600 font-light max-w-2xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Handcrafted pure brass Dhunuchi, royal Gorod silks, autumn Shiuli fragrances, and curated lifestyle essentials for all five joyous days of Durga Puja.
+              <p className="text-lg md:text-xl text-stone-500 font-light max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed">
+                Discover a selection of premium, minimalist products designed to bring focus, calm, and elegance to your everyday environment.
               </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <button 
-                  onClick={() => {
-                    handleCategoryChange('Durga Puja Specials');
-                    productsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 h-12 px-8 bg-rose-800 hover:bg-rose-900 text-white font-medium rounded-full transition-all duration-200 shadow-md shadow-rose-900/20 hover:scale-[1.02]"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>Explore Pujo Specials</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    document.getElementById('pujo-days-strip')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 px-7 bg-white hover:bg-amber-50/80 text-stone-800 font-medium rounded-full transition-all duration-200 border border-amber-200 shadow-sm"
-                >
-                  <DhakIcon className="w-4 h-4 text-rose-700" />
-                  <span>5 Days Lookbook</span>
-                </button>
-              </div>
-
-              {/* Cultural Sub-banner */}
-              <div className="mt-8 pt-6 border-t border-amber-900/10 flex items-center justify-center lg:justify-start gap-6 text-xs text-stone-500 font-light">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-600" />
-                  <span>Authentic Handcrafts</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span>Free Festive Packaging</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                  <span>Pan-India Pujo Express</span>
-                </div>
-              </div>
+              <button className="inline-flex items-center justify-center h-12 px-8 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-full transition-colors duration-200">
+                Explore Collection
+              </button>
             </motion.div>
 
-            {/* Right Visual / Banner Showcase */}
-            <motion.div
-              className="lg:col-span-6 relative w-full max-w-lg mx-auto lg:max-w-none"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.2 }}
-            >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-300/80 bg-stone-950 group h-80 sm:h-96 md:h-[420px]">
-                {/* Sliding Image Carousel */}
-                <AnimatePresence initial={false} custom={slideDirection}>
-                  <motion.div
-                    key={activeImageIndex}
-                    custom={slideDirection}
-                    initial={{ x: slideDirection > 0 ? '100%' : '-100%', opacity: 0.8 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: slideDirection > 0 ? '-100%' : '100%', opacity: 0.8 }}
-                    transition={{
-                      x: { type: 'spring', stiffness: 280, damping: 32 },
-                      opacity: { duration: 0.35 }
-                    }}
-                    className="absolute inset-0 w-full h-full"
-                  >
-                    <img 
-                      src={durgaSlideImages[activeImageIndex].src} 
-                      alt={durgaSlideImages[activeImageIndex].title} 
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* Dark Vignette Overlay for Readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-900/35 to-stone-950/20 pointer-events-none z-10" />
-
-                {/* Slide Title Badge & Image Dots */}
-                <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
-                  <div className="bg-stone-950/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-amber-400/30 text-amber-200 text-xs flex items-center gap-2">
-                    <DurgaTrinayani className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                    <span className="font-medium truncate max-w-[200px] sm:max-w-xs">
-                      {durgaSlideImages[activeImageIndex].title}
-                    </span>
-                  </div>
-
-                  {/* Slide Indicators and Manual Controls */}
-                  <div className="flex items-center gap-1.5 bg-stone-950/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-400/20">
-                    <button
-                      onClick={handlePrevSlide}
-                      className="p-1 text-stone-300 hover:text-amber-200 transition-colors cursor-pointer"
-                      title="Previous Image"
-                      aria-label="Previous image slide"
+            {products.length > 0 && (
+              <motion.div
+                className="relative lg:ml-auto w-full max-w-md mx-auto lg:max-w-none lg:w-[90%]"
+                initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ duration: 1, ease: [0.21, 0.47, 0.32, 0.98], delay: 0.2 }}
+              >
+                <div className="aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden bg-stone-100 shadow-2xl shadow-stone-200/50 relative border border-white/50 group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-stone-200/40 to-transparent z-10 pointer-events-none mix-blend-overlay" />
+                  
+                  {heroProducts.length > 0 ? (
+                  <>
+                  <AnimatePresence initial={false} custom={heroDirection}>
+                    <motion.div
+                      key={heroIndex}
+                      custom={heroDirection}
+                      variants={{
+                        enter: (dir: number) => ({
+                          x: dir > 0 ? '100%' : '-100%',
+                          opacity: 0
+                        }),
+                        center: {
+                          zIndex: 1,
+                          x: 0,
+                          opacity: 1
+                        },
+                        exit: (dir: number) => ({
+                          zIndex: 0,
+                          x: dir < 0 ? '100%' : '-100%',
+                          opacity: 0
+                        })
+                      }}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 }
+                      }}
+                      className="absolute inset-0"
                     >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="flex items-center gap-1 px-1">
-                      {durgaSlideImages.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setSlideDirection(idx > activeImageIndex ? 1 : -1);
-                            setActiveImageIndex(idx);
-                          }}
-                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                            idx === activeImageIndex 
-                              ? 'w-5 bg-amber-400 shadow-sm shadow-amber-400/50' 
-                              : 'w-1.5 bg-stone-500 hover:bg-stone-400'
-                          }`}
-                          aria-label={`Go to slide ${idx + 1}`}
-                        />
-                      ))}
-                    </div>
-                    <button
-                      onClick={handleNextSlide}
-                      className="p-1 text-stone-300 hover:text-amber-200 transition-colors cursor-pointer"
-                      title="Next Image"
-                      aria-label="Next image slide"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Floating Featured Product Overlay */}
-                {fallbackHero.length > 0 && (
-                  <div className="absolute bottom-4 left-4 right-4 z-20">
-                    <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-amber-200/80">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img 
-                            src={fallbackHero[heroIndex].imageUrl} 
-                            alt={fallbackHero[heroIndex].name}
-                            className="w-14 h-14 rounded-xl object-cover border border-amber-200 shrink-0"
-                            onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Product' }}
-                          />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider bg-rose-50 px-1.5 py-0.2 rounded">
-                                {fallbackHero[heroIndex].festiveTag || 'Festive Pick'}
-                              </span>
+                      <img 
+                        src={heroProducts[heroIndex].imageUrl} 
+                        alt={heroProducts[heroIndex].name}
+                        className="w-full h-full object-cover mix-blend-multiply"
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-stone-900/40 to-transparent z-20">
+                        <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-white/50">
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">Featured Product</p>
+                              <h3 className="text-base font-medium text-stone-900 line-clamp-1">{heroProducts[heroIndex].name}</h3>
                             </div>
-                            <h4 className="text-sm font-semibold text-stone-900 truncate">
-                              {fallbackHero[heroIndex].name}
-                            </h4>
-                            <span className="text-xs font-semibold text-rose-900">
-                              {fallbackHero[heroIndex].price}
-                            </span>
+                            <div className="text-right shrink-0">
+                              <span className="text-sm font-medium text-stone-900 block">{heroProducts[heroIndex].price}</span>
+                              {heroProducts[heroIndex].mrp && <span className="text-xs text-stone-400 line-through">{heroProducts[heroIndex].mrp}</span>}
+                            </div>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button 
-                            onClick={handlePrevHero} 
-                            className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-full transition-colors text-stone-700"
-                            aria-label="Previous product"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={handleNextHero} 
-                            className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-full transition-colors text-stone-700"
-                            aria-label="Next product"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
                       </div>
-                    </div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Navigation Arrows */}
+                  {heroProducts.length > 1 && (
+                  <div className="absolute top-1/2 -translate-y-1/2 left-3 right-3 flex justify-between z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button 
+                      onClick={handlePrevHero} 
+                      className="p-2 bg-white/70 hover:bg-white backdrop-blur rounded-full shadow-sm transition-colors text-stone-800"
+                      aria-label="Previous product"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={handleNextHero} 
+                      className="p-2 bg-white/70 hover:bg-white backdrop-blur rounded-full shadow-sm transition-colors text-stone-800"
+                      aria-label="Next product"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Decorative Alpona Corner Accents */}
-              <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full bg-amber-400/20 blur-xl pointer-events-none" />
-              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-rose-600/20 blur-xl pointer-events-none" />
-            </motion.div>
-          </div>
-        </section>
-
-        {/* 5 Days of Pujo Interactive Experience Section */}
-        <section id="pujo-days-strip" className="max-w-7xl mx-auto px-6 -mt-6 relative z-20">
-          <PujoDaysTabStrip 
-            activeDay={selectedPujoDay.day}
-            onSelectDay={handleSelectPujoDay}
-          />
-        </section>
-
-        {/* Selected Day Feature Spotlight */}
-        <div className="max-w-7xl mx-auto px-6 mt-6">
-          <div className="bg-white/80 backdrop-blur-sm border border-amber-200/80 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-50 text-rose-800 border border-amber-200 shrink-0">
-                <DhunuchiIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-rose-900 text-sm">{selectedPujoDay.englishTitle}</span>
-                  <span className="text-xs text-stone-500">• {selectedPujoDay.ritual}</span>
+                  )}
+                  </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-stone-400">
+                      <p>No products available</p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-stone-600 font-light mt-1">
-                  <strong>Style & Living Advice:</strong> {selectedPujoDay.styleAdvice}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                handleCategoryChange(selectedPujoDay.recommendedCategory);
-                productsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-xl transition-colors border border-rose-200 shrink-0"
-            >
-              <span>View {selectedPujoDay.day} Essentials</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+                
+                {/* Decorative floating elements */}
+                <motion.div 
+                  className="absolute -top-6 -right-6 w-24 h-24 bg-rose-100 rounded-full blur-2xl -z-10"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div 
+                  className="absolute -bottom-8 -left-8 w-32 h-32 bg-teal-100 rounded-full blur-2xl -z-10"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.7, 0.5] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                />
+              </motion.div>
+            )}
           </div>
-        </div>
+        </section>
 
-        {/* Festive Marquee Section */}
-        <section className="py-4 border-y border-amber-900/10 bg-gradient-to-r from-rose-950 via-red-900 to-amber-950 text-amber-200 overflow-hidden relative mt-12">
+        {/* Category Marquee Section */}
+        <section className="py-6 border-y border-stone-200/50 bg-white overflow-hidden relative">
           <div className="flex w-max animate-marquee-ltr">
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="flex shrink-0 items-center gap-10 px-6 font-display font-medium text-sm md:text-base uppercase tracking-widest">
-                <span className="flex items-center gap-2">🌸 শুভ শারদীয়া</span>
-                <span className="text-amber-500/50">•</span>
-                <span className="flex items-center gap-2">🥁 DHAKER TALE TALE</span>
-                <span className="text-amber-500/50">•</span>
-                <span className="flex items-center gap-2">🪔 SANDHI PUJA AARTI</span>
-                <span className="text-amber-500/50">•</span>
-                <span className="flex items-center gap-2">🌾 KASH PHOOL & AGOMONI</span>
-                <span className="text-amber-500/50">•</span>
-                <span className="flex items-center gap-2">🌺 PUJOR NOTUN SHAJ</span>
-                <span className="text-amber-500/50">•</span>
-                <span className="flex items-center gap-2">✨ SUBHO BIJOYA BLESSINGS</span>
-                <span className="text-amber-500/50">•</span>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex shrink-0 items-center gap-8 px-4">
+                {allCategories.map((category, idx) => (
+                  <span key={`cat-${i}-${idx}`} className="text-xl md:text-2xl font-display font-medium text-stone-300 uppercase tracking-widest whitespace-nowrap">
+                    {category}
+                  </span>
+                ))}
               </div>
             ))}
           </div>
         </section>
 
-        {/* Traditional Alpona Section Divider */}
-        <AlponaDivider className="my-10 max-w-4xl mx-auto" />
-
         {/* Product Layout Section */}
-        <section ref={productsSectionRef} className="px-6 py-8 md:py-16 max-w-7xl mx-auto relative">
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-14 items-start">
+        <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto relative">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
             {/* Sidebar Filters */}
-            <aside className="flex flex-col w-full lg:w-60 shrink-0 lg:sticky lg:top-28 gap-6 lg:gap-8 bg-white/70 backdrop-blur-sm p-5 rounded-3xl border border-amber-200/60 shadow-sm">
+            <aside className="flex flex-col w-full lg:w-56 shrink-0 lg:sticky lg:top-28 gap-6 lg:gap-10">
               {/* Sort Options */}
               <div>
-                <h3 className="text-xs font-semibold text-rose-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <ArrowDownAZ className="w-4 h-4 text-amber-600" />
-                  Sort Collections
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-3 lg:mb-4 flex items-center gap-2">
+                  <ArrowDownAZ className="w-4 h-4 text-stone-400" />
+                  Sort By
                 </h3>
-                <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
+                <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
                   <button
                     onClick={() => handleSortChange('latest')}
-                    className={`shrink-0 text-left text-xs md:text-sm transition-all px-3 py-2 rounded-xl border ${
-                      sortBy === 'latest' 
-                        ? 'bg-rose-800 text-white font-medium border-rose-900 shadow-sm' 
-                        : 'bg-white text-stone-600 hover:bg-amber-50/70 border-stone-200'
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'latest' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
                     }`}
                   >
                     Latest Arrivals
                   </button>
                   <button
                     onClick={() => handleSortChange('price-asc')}
-                    className={`shrink-0 text-left text-xs md:text-sm transition-all px-3 py-2 rounded-xl border ${
-                      sortBy === 'price-asc' 
-                        ? 'bg-rose-800 text-white font-medium border-rose-900 shadow-sm' 
-                        : 'bg-white text-stone-600 hover:bg-amber-50/70 border-stone-200'
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'price-asc' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
                     }`}
                   >
                     Price: Low to High
                   </button>
                   <button
                     onClick={() => handleSortChange('price-desc')}
-                    className={`shrink-0 text-left text-xs md:text-sm transition-all px-3 py-2 rounded-xl border ${
-                      sortBy === 'price-desc' 
-                        ? 'bg-rose-800 text-white font-medium border-rose-900 shadow-sm' 
-                        : 'bg-white text-stone-600 hover:bg-amber-50/70 border-stone-200'
+                    className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                      sortBy === 'price-desc' ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
                     }`}
                   >
                     Price: High to Low
@@ -469,32 +282,24 @@ export default function Home() {
 
               {/* Category Filter */}
               <div>
-                <h3 className="text-xs font-semibold text-rose-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <LayoutGrid className="w-4 h-4 text-amber-600" />
-                  Festive & Home Categories
+                <h3 className="text-xs font-semibold text-stone-900 uppercase tracking-widest mb-3 lg:mb-4 flex items-center gap-2">
+                  <LayoutGrid className="w-4 h-4 text-stone-400" />
+                  Categories
                 </h3>
-                <div className="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto max-h-auto lg:max-h-[55vh] pr-0 lg:pr-1 custom-scrollbar pb-2 lg:pb-0">
-                  {categories.map(category => {
-                    const isPujoCategory = category.includes('Pujo') || category.includes('Durga') || category.includes('Aarti') || category.includes('Mandir') || category.includes('Festive');
-                    return (
-                      <button
-                        key={category}
-                        onClick={() => handleCategoryChange(category)}
-                        className={`shrink-0 text-left text-xs transition-all px-3 py-2 rounded-xl border flex items-center justify-between ${
-                          activeCategory === category 
-                            ? 'bg-rose-800 text-white font-semibold border-rose-900 shadow-sm' 
-                            : isPujoCategory
-                              ? 'bg-amber-50/80 text-rose-900 hover:bg-amber-100/80 border-amber-200 font-medium'
-                              : 'bg-white text-stone-600 hover:bg-stone-50 border-stone-200'
-                        }`}
-                      >
-                        <span className="truncate">{category}</span>
-                        {isPujoCategory && activeCategory !== category && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0 ml-1" />
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-row lg:flex-col gap-2 lg:gap-3 overflow-x-auto lg:overflow-y-auto max-h-auto lg:max-h-[60vh] pr-0 lg:pr-2 custom-scrollbar pb-2 lg:pb-0">
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => handleCategoryChange(category)}
+                      className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
+                        activeCategory === category 
+                          ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' 
+                          : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
                 </div>
               </div>
             </aside>
@@ -502,43 +307,32 @@ export default function Home() {
             {/* Main Product Grid */}
             <div className="flex-grow w-full min-w-0">
               <motion.div 
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-12"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6 }}
               >
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-2xl md:text-3xl font-display font-medium text-stone-900 shrink-0">
-                      {activeCategory === 'All' ? 'Curated Festive & Home Essentials' : activeCategory}
-                    </h2>
-                    <span className="text-xs bg-amber-100 text-amber-900 font-medium px-2 py-0.5 rounded-full border border-amber-200">
-                      {filteredProducts.length} items
+                  <h2 className="text-2xl md:text-3xl font-display font-medium text-stone-800 shrink-0 mb-1">Featured Curation</h2>
+                  {searchQuery && (
+                    <span className="text-sm text-stone-500">
+                      Showing results for <span className="font-medium text-stone-900">"{searchQuery}"</span>
                     </span>
-                  </div>
-                  {searchQuery ? (
-                    <span className="text-xs text-stone-500">
-                      Showing results for <span className="font-semibold text-rose-800">"{searchQuery}"</span>
-                    </span>
-                  ) : (
-                    <p className="text-xs text-stone-500 font-light">
-                      Handpicked for devotion, elevated living, and joyous celebrations.
-                    </p>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
+                <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-xl">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-rose-800 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                    className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                     aria-label="Grid view"
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-rose-800 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                    className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                     aria-label="List view"
                   >
                     <ListIcon className="w-4 h-4" />
@@ -551,32 +345,33 @@ export default function Home() {
                   <motion.div 
                     key={`${activeCategory}-${sortBy}-${viewMode}-${searchQuery}`}
                     className={viewMode === 'grid' 
-                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" 
-                      : "grid grid-cols-1 gap-4"}
+                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16" 
+                      : "grid grid-cols-1 gap-y-8"}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
                     variants={{
-                      hidden: { opacity: 0 },
+                      hidden: { opacity: 0, x: -50 },
                       visible: { 
                         opacity: 1, 
+                        x: 0,
                         transition: { 
-                          duration: 0.3,
-                          staggerChildren: 0.08 
+                          duration: 0.4,
+                          staggerChildren: 0.1 
                         } 
                       },
-                      exit: { opacity: 0, transition: { duration: 0.2 } }
+                      exit: { opacity: 0, x: 50, transition: { duration: 0.3 } }
                     }}
                   >
                     {filteredProducts.map((product) => (
                       <motion.div
                         key={product.id}
                         variants={{
-                          hidden: { opacity: 0, y: 15 },
-                          visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] } },
-                          exit: { opacity: 0, scale: 0.96, transition: { duration: 0.2 } }
+                          hidden: { opacity: 0, y: 20 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] } },
+                          exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
                         }}
-                        className={viewMode === 'list' ? "w-full" : ""}
+                        className={viewMode === 'list' ? "w-full sm:max-w-3xl" : ""}
                       >
                         <ProductCard product={product} viewMode={viewMode} />
                       </motion.div>
@@ -584,17 +379,15 @@ export default function Home() {
                   </motion.div>
                 </AnimatePresence>
               ) : (
-                <div className="py-20 text-center text-stone-500 bg-white/80 rounded-3xl border border-amber-200/80 p-8 shadow-sm">
-                  <DurgaTrinayani className="w-12 h-12 mx-auto mb-3 text-rose-700 opacity-60" />
-                  <p className="text-base font-medium text-stone-800 mb-1">No products found for this selection.</p>
-                  <p className="text-xs text-stone-500 mb-4">Try clearing your filters to explore our full festive catalog.</p>
+                <div className="py-20 text-center text-stone-500 bg-stone-50 rounded-2xl border border-stone-100">
+                  <p>No products found matching your criteria.</p>
                   <button 
                     onClick={() => { 
                       setSearchParams(prev => { prev.delete('category'); prev.delete('q'); return prev; }); 
                     }} 
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-800 hover:bg-rose-900 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+                    className="mt-4 text-stone-900 font-medium hover:underline"
                   >
-                    Clear All Filters
+                    Clear Filters
                   </button>
                 </div>
               )}
@@ -603,27 +396,22 @@ export default function Home() {
           </div>
         </section>
         
-        {/* Newsletter/Festive Gifting Section */}
-        <section className="px-6 py-20 bg-gradient-to-br from-amber-50 via-rose-50 to-amber-100/60 border-t border-amber-900/10 mt-16">
+        {/* Newsletter/Value Prop Section */}
+        <section className="px-6 py-24 bg-stone-100 mt-12">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="inline-flex p-3 rounded-full bg-white shadow-md border border-amber-200 mb-4">
-              <DurgaTrinayani className="w-8 h-8 text-rose-800" />
-            </div>
-            <h2 className="text-2xl md:text-4xl font-display font-medium text-stone-900 mb-3">
-              শারদ শুভেচ্ছা ও উপহার
-            </h2>
-            <p className="text-sm md:text-base text-stone-600 font-light mb-8 max-w-xl mx-auto">
-              Subscribe to our festive gazette for exclusive early access to Subho Bijoya confection gift boxes, festive home styling guides, and celebratory offers.
+            <h2 className="text-2xl md:text-3xl font-display font-medium text-stone-800 mb-4">Mindful selections, weekly.</h2>
+            <p className="text-stone-500 font-light mb-8">
+              Join our newsletter for exclusive insights on minimalist design, focus, and thoughtfully crafted products.
             </p>
             <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
               <input 
                 type="email" 
-                placeholder="Enter your email for festive updates" 
-                className="flex-grow h-12 px-4 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-800/30 text-stone-800 text-sm placeholder:text-stone-400 shadow-sm"
+                placeholder="Your email address" 
+                className="flex-grow h-12 px-4 rounded-xl border border-stone-200 bg-white/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition-all placeholder:text-stone-400"
                 required
               />
-              <button type="submit" className="h-12 px-6 bg-rose-800 hover:bg-rose-900 text-white font-medium rounded-xl transition-colors duration-200 shrink-0 shadow-sm">
-                Join Festive Circle
+              <button type="submit" className="h-12 px-6 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors duration-200 shrink-0">
+                Subscribe
               </button>
             </form>
           </div>
@@ -634,4 +422,3 @@ export default function Home() {
     </div>
   );
 }
-

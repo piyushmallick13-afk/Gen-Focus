@@ -13,8 +13,6 @@ export interface Product {
   rating?: number;
   type?: 'affiliate' | 'buy';
   hasSizes?: boolean;
-  festiveTag?: string;
-  pujoDay?: string;
 }
 
 export interface NavLink {
