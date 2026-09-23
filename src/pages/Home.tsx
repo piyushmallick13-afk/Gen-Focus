@@ -1,44 +1,24 @@
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import CategorySection from '../components/CategorySection';
 import { useProducts } from '../hooks/useProducts';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownAZ, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight, X, Tag } from 'lucide-react';
-import { useCategories } from '../hooks/useCategories';
+import { ArrowDownAZ, ArrowUpZA, LayoutGrid, List as ListIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { allCategories } from '../data';
 
 export default function Home() {
   const { products } = useProducts();
-  const { categoryNames: allCategories, categoryDetailsMap: categoryDetails } = useCategories();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   const activeCategory = searchParams.get('category') || 'All';
-  const activeSubCategory = searchParams.get('sub') || '';
   const sortBy = (searchParams.get('sort') || 'latest') as 'latest' | 'price-asc' | 'price-desc';
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const handleCategoryChange = (category: string, subCategory?: string) => {
+  const handleCategoryChange = (category: string) => {
     setSearchParams(prev => {
-      if (category === 'All') {
-        prev.delete('category');
-        prev.delete('sub');
-      } else {
-        prev.set('category', category);
-        if (subCategory) {
-          prev.set('sub', subCategory);
-        } else {
-          prev.delete('sub');
-        }
-      }
-      return prev;
-    });
-  };
-
-  const clearSubCategory = () => {
-    setSearchParams(prev => {
-      prev.delete('sub');
+      prev.set('category', category);
       return prev;
     });
   };
@@ -53,12 +33,7 @@ export default function Home() {
   // Hero Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDirection, setHeroDirection] = useState(1);
-  const allowedCategoriesSet = new Set(allCategories.map(c => c.toLowerCase()));
-  const validProducts = allCategories.length > 0
-    ? products.filter(p => allowedCategoriesSet.has((p.category || '').toLowerCase()))
-    : products;
-  const productPool = validProducts.length > 0 ? validProducts : products;
-  const heroProducts = productPool.slice(0, 4); // Take top 4 for hero
+  const heroProducts = products.slice(0, 4); // Take top 4 for hero
 
   useEffect(() => {
     if (heroProducts.length <= 1) return;
@@ -84,25 +59,15 @@ export default function Home() {
   const categories = ['All', ...allCategories];
   
   let filteredProducts = activeCategory === 'All' 
-    ? productPool 
-    : products.filter(p => (p.category || '').toLowerCase() === activeCategory.toLowerCase());
-
-  if (activeSubCategory) {
-    const sub = activeSubCategory.toLowerCase();
-    filteredProducts = filteredProducts.filter(p => 
-      (p.subCategory && p.subCategory.toLowerCase().includes(sub)) ||
-      p.name.toLowerCase().includes(sub) ||
-      p.description.toLowerCase().includes(sub)
-    );
-  }
+    ? products 
+    : products.filter(p => p.category === activeCategory);
 
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filteredProducts = filteredProducts.filter(p => 
       p.name.toLowerCase().includes(q) || 
       p.description.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.subCategory && p.subCategory.toLowerCase().includes(q))
+      p.category.toLowerCase().includes(q)
     );
   }
 
@@ -146,13 +111,7 @@ export default function Home() {
               <p className="text-lg md:text-xl text-stone-500 font-light max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed">
                 Discover a selection of premium, minimalist products designed to bring focus, calm, and elegance to your everyday environment.
               </p>
-              <button 
-                onClick={() => { 
-                  const el = document.getElementById('catalog-products'); 
-                  if (el) el.scrollIntoView({ behavior: 'smooth' }); 
-                }}
-                className="inline-flex items-center justify-center h-12 px-8 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-full transition-colors duration-200 cursor-pointer"
-              >
+              <button className="inline-flex items-center justify-center h-12 px-8 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-full transition-colors duration-200">
                 Explore Collection
               </button>
             </motion.div>
@@ -264,33 +223,23 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Continuous Fashion Categories Text Marquee */}
-        <div className="bg-stone-900 text-stone-300 py-3.5 overflow-hidden border-y border-stone-800 select-none">
-          <div className="flex w-max animate-marquee gap-8 whitespace-nowrap text-xs uppercase tracking-[0.25em] font-medium items-center">
-            {[...Array(6)].map((_, groupIdx) => (
-              <div key={groupIdx} className="flex items-center gap-8">
-                <span>Women's Fashion</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Men's Fashion</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Tailored Silhouettes</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Timeless Essentials</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Natural Fibers</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Refined Minimalism</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
+        {/* Category Marquee Section */}
+        <section className="py-6 border-y border-stone-200/50 bg-white overflow-hidden relative">
+          <div className="flex w-max animate-marquee-ltr">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex shrink-0 items-center gap-8 px-4">
+                {allCategories.map((category, idx) => (
+                  <span key={`cat-${i}-${idx}`} className="text-xl md:text-2xl font-display font-medium text-stone-300 uppercase tracking-widest whitespace-nowrap">
+                    {category}
+                  </span>
+                ))}
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Curated Categories Separate Page Section with Hover Subcategory Flyouts */}
-        <CategorySection />
+        </section>
 
         {/* Product Layout Section */}
-        <section id="catalog-products" className="px-6 py-12 md:py-24 max-w-7xl mx-auto relative">
+        <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto relative">
           <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
             
             {/* Sidebar Filters */}
@@ -341,7 +290,7 @@ export default function Home() {
                       key={category}
                       onClick={() => handleCategoryChange(category)}
                       className={`shrink-0 text-left text-sm transition-colors px-4 py-2 lg:px-0 lg:py-0 rounded-full lg:rounded-none border lg:border-none ${
-                        activeCategory.toLowerCase() === category.toLowerCase()
+                        activeCategory === category 
                           ? 'bg-stone-900 text-white lg:bg-transparent lg:text-stone-900 font-medium border-stone-900 lg:border-transparent' 
                           : 'bg-white lg:bg-transparent text-stone-500 hover:text-stone-800 border-stone-200 lg:border-transparent'
                       }`}
@@ -350,99 +299,24 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
-
-                {/* Subcategory Filter if a Category is Active */}
-                {activeCategory !== 'All' && categoryDetails[activeCategory] && (
-                  <div className="mt-4 pt-4 border-t border-stone-200/60">
-                    <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                      <Tag className="w-3 h-3 text-stone-400" />
-                      {activeCategory} Subcategories
-                    </span>
-                    <div className="flex flex-wrap lg:flex-col gap-1.5">
-                      <button
-                        onClick={clearSubCategory}
-                        className={`text-left text-xs py-1 px-2.5 rounded-md transition-colors ${
-                          !activeSubCategory 
-                            ? 'bg-stone-900 text-white font-medium' 
-                            : 'bg-stone-100 lg:bg-transparent text-stone-600 hover:bg-stone-50 hover:text-stone-900'
-                        }`}
-                      >
-                        All in {activeCategory}
-                      </button>
-                      {(categoryDetails[activeCategory]?.popularTags || []).map(sub => (
-                        <button
-                          key={sub}
-                          onClick={() => handleCategoryChange(activeCategory, sub)}
-                          className={`text-left text-xs py-1 px-2.5 rounded-md transition-colors ${
-                            activeSubCategory.toLowerCase() === sub.toLowerCase()
-                              ? 'bg-stone-900 text-white font-medium'
-                              : 'bg-stone-100 lg:bg-transparent text-stone-600 hover:bg-stone-50 hover:text-stone-900'
-                          }`}
-                        >
-                          {sub}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </aside>
 
             {/* Main Product Grid */}
             <div className="flex-grow w-full min-w-0">
               <motion.div 
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-12"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6 }}
               >
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-display font-medium text-stone-800 shrink-0 mb-1">
-                    {activeCategory === 'All' ? 'Featured Curation' : activeCategory}
-                  </h2>
-                  {searchQuery ? (
+                  <h2 className="text-2xl md:text-3xl font-display font-medium text-stone-800 shrink-0 mb-1">Featured Curation</h2>
+                  {searchQuery && (
                     <span className="text-sm text-stone-500">
                       Showing results for <span className="font-medium text-stone-900">"{searchQuery}"</span>
                     </span>
-                  ) : (
-                    <p className="text-sm text-stone-500">
-                      {activeCategory === 'All' 
-                        ? 'Timeless design, tactile materials, and modern silhouettes.' 
-                        : categoryDetails[activeCategory]?.tagline || 'Explore curated designs.'}
-                    </p>
-                  )}
-
-                  {/* Active Selection Breadcrumbs / Chips */}
-                  {(activeCategory !== 'All' || activeSubCategory) && (
-                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      {activeCategory !== 'All' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-900 text-white text-xs font-medium rounded-full shadow-sm">
-                          <span>{activeCategory}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCategoryChange('All')}
-                            className="hover:text-stone-300 transition-colors"
-                            aria-label="Remove category filter"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                      {activeSubCategory && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-100 border border-stone-200 text-stone-800 text-xs font-medium rounded-full">
-                          <span>{activeSubCategory}</span>
-                          <button
-                            type="button"
-                            onClick={clearSubCategory}
-                            className="hover:text-stone-500 transition-colors"
-                            aria-label="Remove subcategory filter"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                    </div>
                   )}
                 </div>
                 

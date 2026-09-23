@@ -24,7 +24,6 @@ export default function ProductDetails() {
 
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [showSizeChart, setShowSizeChart] = useState(false);
-  const [sizeError, setSizeError] = useState(false);
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
@@ -57,10 +56,9 @@ export default function ProductDetails() {
 
   const handleAddToCart = () => {
     if (product.hasSizes && !selectedSize) {
-      setSizeError(true);
+      alert("Please select a size first.");
       return;
     }
-    setSizeError(false);
     addToCart({
       productId: product.id,
       name: product.name,
@@ -73,10 +71,10 @@ export default function ProductDetails() {
 
   const handleBuyClick = () => {
     if (product?.hasSizes && !selectedSize) {
-      setSizeError(true);
+      alert("Please select a size first.");
       return;
     }
-    setSizeError(false);
+    
     // Add to cart and immediately proceed to checkout
     addToCart({
       productId: product!.id,
@@ -195,14 +193,7 @@ export default function ProductDetails() {
             {product.hasSizes && (
               <div className="mb-10">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-stone-900">Select Size</h3>
-                    {sizeError && (
-                      <span className="text-xs text-rose-600 font-medium animate-pulse">
-                        * Please select a size
-                      </span>
-                    )}
-                  </div>
+                  <h3 className="text-sm font-medium text-stone-900">Select Size</h3>
                   <button onClick={() => setShowSizeChart(true)} className="text-sm text-stone-500 hover:text-stone-900 flex items-center gap-1 transition-colors">
                     <Ruler className="w-4 h-4" /> Size Chart
                   </button>
@@ -211,17 +202,8 @@ export default function ProductDetails() {
                   {sizes.map((s) => (
                     <button
                       key={s}
-                      onClick={() => {
-                        setSelectedSize(s);
-                        setSizeError(false);
-                      }}
-                      className={`h-12 min-w-[3rem] px-4 rounded-xl font-medium transition-all duration-200 border ${
-                        selectedSize === s 
-                          ? 'border-stone-900 bg-stone-900 text-white shadow-md' 
-                          : sizeError
-                            ? 'border-rose-300 bg-rose-50/40 text-stone-700 hover:border-stone-900'
-                            : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:bg-stone-50'
-                      }`}
+                      onClick={() => setSelectedSize(s)}
+                      className={`h-12 min-w-[3rem] px-4 rounded-xl font-medium transition-all duration-200 border ${selectedSize === s ? 'border-stone-900 bg-stone-900 text-white shadow-md' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:bg-stone-50'}`}
                     >
                       {s}
                     </button>

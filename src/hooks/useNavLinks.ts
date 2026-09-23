@@ -4,8 +4,8 @@ import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'fire
 import { db } from '../lib/firebase';
 
 const defaultLinks: NavLink[] = [
-  { id: '1', label: "Men's Fashion", url: '/', section: 'explore' },
-  { id: '2', label: "Women's Fashion", url: '/', section: 'explore' },
+  { id: '1', label: 'Workspace', url: '/', section: 'explore' },
+  { id: '2', label: 'Living', url: '/', section: 'explore' },
   { id: '3', label: 'Accessories', url: '/', section: 'explore' },
   { id: '4', label: 'Journal', url: '/', section: 'explore' },
   { id: '5', label: 'Privacy Policy', url: '#', section: 'legal' },

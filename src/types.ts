@@ -9,27 +9,10 @@ export interface Product {
   additionalImages?: string[];
   affiliateUrl: string;
   category: string;
-  subCategory?: string;
   imageBgColor?: string;
   rating?: number;
   type?: 'affiliate' | 'buy';
   hasSizes?: boolean;
-}
-
-export interface CategoryGroup {
-  title: string;
-  items: string[];
-}
-
-export interface CategoryDetail {
-  id?: string;
-  name: string;
-  tagline: string;
-  description: string;
-  image: string;
-  groups: CategoryGroup[];
-  popularTags: string[];
-  order?: number;
 }
 
 export interface NavLink {

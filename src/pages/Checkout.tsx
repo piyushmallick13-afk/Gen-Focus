@@ -6,12 +6,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 export default function Checkout() {
   const { cart, clearCart } = useCart();
   const isRazorpayLoaded = useRazorpay();

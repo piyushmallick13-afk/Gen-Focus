@@ -1,0 +1,7 @@
+--- src/contexts/CartContext.tsx
++++ src/contexts/CartContext.tsx
+@@ -37,3 +37,3 @@
+       }
+-      return [...prev, { ...item, id: crypto.randomUUID() }];
++      return [...prev, { ...item, id: Date.now().toString() + Math.random().toString(36).substring(2) }];
+     });

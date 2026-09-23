@@ -17,10 +17,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('cart');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter((i): i is CartItem => Boolean(i && typeof i === 'object' && i.id && i.name));
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
@@ -32,21 +29,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart]);
 
   const addToCart = (item: Omit<CartItem, 'id'>) => {
-    const safeItem = {
-      ...item,
-      imageUrl: item.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Product'
-    };
-
     setCart(prev => {
-      const existing = prev.find(i => i.productId === safeItem.productId && i.size === safeItem.size);
+      const existing = prev.find(i => i.productId === item.productId && i.size === item.size);
       if (existing) {
         return prev.map(i => 
           i.id === existing.id 
-            ? { ...i, quantity: i.quantity + safeItem.quantity } 
+            ? { ...i, quantity: i.quantity + item.quantity } 
             : i
         );
       }
-      return [...prev, { ...safeItem, id: Date.now().toString() + Math.random().toString(36).substring(2) }];
+      return [...prev, { ...item, id: Date.now().toString() + Math.random().toString(36).substring(2) }];
     });
     setIsCartOpen(true);
   };

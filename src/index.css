@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
   
-  --animate-marquee: marquee 28s linear infinite;
-  --animate-marquee-ltr: marquee-ltr 28s linear infinite;
+  --animate-marquee: marquee 25s linear infinite;
+  --animate-marquee-ltr: marquee-ltr 25s linear infinite;
 }
 
 @keyframes marquee {
@@ -21,11 +21,10 @@
 
 body {
   background-color: #FAFAFA;
-  color: #1C1917;
-  font-family: var(--font-sans);
+  color: #292524;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar for sidebar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
