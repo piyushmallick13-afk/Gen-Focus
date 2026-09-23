@@ -6,11 +6,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export default function Checkout() {
   const { cart, clearCart } = useCart();
   const isRazorpayLoaded = useRazorpay();
   const navigate = useNavigate();
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [userInfo, setUserInfo] = useState({
     firstName: '',
@@ -30,23 +35,18 @@ export default function Checkout() {
   };
 
   const startRazorpay = () => {
-    if (!isRazorpayLoaded) {
-      setStatusMessage({ type: 'error', text: 'Payment system is still initializing. Please wait a moment.' });
-      return;
-    }
+    if (!isRazorpayLoaded) return;
 
     const options = {
       key: 'rzp_test_TYoUc5H0CdNOdB', // fallback dummy key format
       amount: totalInPaise.toString(),
       currency: "INR",
-      name: "genfocus",
+      name: "Your Store",
       description: `Purchase of ${cart.length} items`,
       handler: function (response: any) {
-        setStatusMessage({ type: 'success', text: `Payment successful! Payment ID: ${response.razorpay_payment_id}. Redirecting...` });
-        setTimeout(() => {
-          clearCart();
-          navigate('/');
-        }, 2200);
+        alert(`Payment successful! Payment ID: ${response.razorpay_payment_id}`);
+        clearCart();
+        navigate('/');
       },
       prefill: {
         name: `${userInfo.firstName} ${userInfo.lastName}`,
@@ -61,11 +61,11 @@ export default function Checkout() {
     if (window.Razorpay) {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
-        setStatusMessage({ type: 'error', text: `Payment failed: ${response.error?.description || 'Transaction declined'}` });
+        alert(`Payment failed! Error: ${response.error.description}`);
       });
       rzp.open();
     } else {
-      setStatusMessage({ type: 'error', text: 'Payment gateway could not be loaded. Please try again later.' });
+      alert("Razorpay SDK failed to load. Please try again later.");
     }
   };
 
@@ -170,16 +170,6 @@ export default function Checkout() {
                     <span className="text-xl font-semibold text-stone-900">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
-
-                {statusMessage && (
-                  <div className={`p-4 rounded-xl text-sm mb-4 font-medium leading-relaxed ${
-                    statusMessage.type === 'success' 
-                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' 
-                      : 'bg-rose-50 text-rose-900 border border-rose-200'
-                  }`}>
-                    {statusMessage.text}
-                  </div>
-                )}
 
                 <button 
                   type="submit" 
