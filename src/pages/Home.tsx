@@ -264,26 +264,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Continuous Lifestyle & Desk Categories Text Marquee */}
+        {/* Continuous Fashion Categories Text Marquee */}
         <div className="bg-stone-900 text-stone-300 py-3.5 overflow-hidden border-y border-stone-800 select-none">
           <div className="flex w-max animate-marquee gap-8 whitespace-nowrap text-xs uppercase tracking-[0.25em] font-medium items-center">
-            {[...Array(4)].map((_, groupIdx) => (
+            {[...Array(6)].map((_, groupIdx) => (
               <div key={groupIdx} className="flex items-center gap-8">
-                <span>Work & Focus</span>
+                <span>Women's Fashion</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Sound & Audio</span>
+                <span>Men's Fashion</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Writing & Carry</span>
+                <span>Tailored Silhouettes</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Lighting & Ambience</span>
+                <span>Timeless Essentials</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Apparel & Comfort</span>
+                <span>Natural Fibers</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Desk Architecture</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Ergonomic Tools</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
-                <span>Minimalist Living</span>
+                <span>Refined Minimalism</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-600" />
               </div>
             ))}

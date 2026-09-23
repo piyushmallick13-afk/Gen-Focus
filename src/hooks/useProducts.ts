@@ -1,104 +1,56 @@
 import { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { products as defaultProducts } from '../data';
-import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch, getDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
-let hasCheckedSeed = false;
+const STORAGE_KEY = 'genfocus_products_v3';
 
-// Helper to remove any undefined properties before writing to Firestore
-function sanitizeProduct(product: Product): Record<string, unknown> {
-  const clean: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(product)) {
-    if (value !== undefined) {
-      clean[key] = value;
+function loadInitialProducts(): Product[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
     }
+  } catch (err) {
+    console.error('Failed to load products from localStorage:', err);
   }
-  return clean;
+  return defaultProducts;
 }
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(loadInitialProducts);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const productsRef = collection(db, 'products');
-    const systemDocRef = doc(db, 'system', 'app_state');
-
-    // Only seed once on initial app deployment if never seeded before
-    const checkAndSeed = async () => {
-      if (hasCheckedSeed) return;
-      hasCheckedSeed = true;
-
-      try {
-        const systemSnap = await getDoc(systemDocRef);
-        if (!systemSnap.exists()) {
-          // System has never been seeded before
-          const batch = writeBatch(db);
-          defaultProducts.forEach(prod => {
-            const docRef = doc(productsRef, prod.id);
-            batch.set(docRef, sanitizeProduct(prod));
-          });
-          batch.set(systemDocRef, { seeded: true, initializedAt: new Date().toISOString() });
-          await batch.commit();
-        }
-      } catch (err) {
-        console.error("Initial seeding check error:", err);
-      }
-    };
-
-    checkAndSeed();
-
-    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Product));
-
-      // Stable sorting: numeric IDs in order, followed by timestamp / string IDs
-      fetchedProducts.sort((a, b) => {
-        const numA = Number(a.id);
-        const numB = Number(b.id);
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return numA - numB;
-        }
-        return a.id.localeCompare(b.id);
-      });
-
-      setProducts(fetchedProducts);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'products');
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const addProduct = async (product: Product) => {
     try {
-      const sanitized = sanitizeProduct(product);
-      await setDoc(doc(db, 'products', product.id), sanitized);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `products/${product.id}`);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+    } catch (err) {
+      console.error('Failed to save products to localStorage:', err);
+    }
+  }, [products]);
+
+  const addProduct = (product: Product) => {
+    setProducts(prev => [product, ...prev]);
+  };
+
+  const removeProduct = (id: string) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+
+  const editProduct = (updatedProduct: Product) => {
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  };
+
+  const resetToDefaults = () => {
+    setProducts(defaultProducts);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultProducts));
+    } catch (err) {
+      console.error('Failed to reset products in localStorage:', err);
     }
   };
 
-  const removeProduct = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'products', id));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
-    }
-  };
-
-  const editProduct = async (updatedProduct: Product) => {
-    try {
-      const sanitized = sanitizeProduct(updatedProduct);
-      await setDoc(doc(db, 'products', updatedProduct.id), sanitized);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `products/${updatedProduct.id}`);
-    }
-  };
-
-  return { products, loading, addProduct, removeProduct, editProduct };
+  return { products, loading, addProduct, removeProduct, editProduct, resetToDefaults };
 }

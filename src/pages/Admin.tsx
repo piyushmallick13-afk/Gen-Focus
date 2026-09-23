@@ -14,15 +14,15 @@ import {
   X, 
   AlertCircle,
   CheckCircle2,
-  ExternalLink
+  RotateCcw
 } from 'lucide-react';
 import { Product, NavLink } from '../types';
 import { allCategories } from '../data';
 import imageCompression from 'browser-image-compression';
 
 export default function Admin() {
-  const { products, addProduct, removeProduct, editProduct } = useProducts();
-  const { links, addLink, removeLink, editLink } = useNavLinks();
+  const { products, addProduct, removeProduct, editProduct, resetToDefaults: resetProducts } = useProducts();
+  const { links, addLink, removeLink, editLink, resetToDefaults: resetLinks } = useNavLinks();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -60,9 +60,6 @@ export default function Admin() {
     additionalImages: []
   });
 
-  const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
-  const [imageLoadError, setImageLoadError] = useState(false);
-  const [additionalImageUrl, setAdditionalImageUrl] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -84,12 +81,11 @@ export default function Admin() {
     if (!file.type.startsWith('image/')) {
       setStatusMessage({
         type: 'error',
-        text: 'Unsupported file format. Please upload a valid image file (e.g. JPG, PNG, WEBP).'
+        text: 'Unsupported file format. Please upload a valid image file (JPG, PNG, WEBP).'
       });
       return;
     }
 
-    // Check size
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
       setStatusMessage({
@@ -99,37 +95,32 @@ export default function Admin() {
       return;
     }
 
-    // Immediately show a local preview to make UI feel instant
-    const localPreviewUrl = URL.createObjectURL(file);
-    setFormData(prev => ({ ...prev, imageUrl: localPreviewUrl }));
-    setImageLoadError(false);
     setIsUploading(true);
     setStatusMessage(null);
 
     try {
-      // Compress the image to a smaller size to store directly in Firestore
       const options = {
-        maxSizeMB: 0.15, // Keep small to fit in Firestore doc limit
-        maxWidthOrHeight: 800,
-        useWebWorker: false, // Avoid WebWorker issues in sandbox
+        maxSizeMB: 0.25,
+        maxWidthOrHeight: 1000,
+        useWebWorker: false,
       };
       
       const compressedFile = await imageCompression(file, options);
-      
-      // Convert to Base64 directly
       const base64String = await imageCompression.getDataUrlFromFile(compressedFile);
       
       setFormData(prev => ({ ...prev, imageUrl: base64String })); 
+      setStatusMessage({ type: 'success', text: 'Image uploaded and processed successfully.' });
     } catch (err) {
       console.error("Upload failed", err);
-      let errorMessage = "Failed to upload image. Please make sure it is a supported image format and try again.";
+      let errorMessage = "Failed to process image. Please try another image.";
       if (err instanceof Error) {
         errorMessage = err.message;
       }
       setStatusMessage({ type: 'error', text: errorMessage });
-      setFormData(prev => ({ ...prev, imageUrl: '' })); // Revert on failure
     } finally {
       setIsUploading(false);
+      // Reset input value so same file can be selected again if needed
+      e.target.value = '';
     }
   };
 
@@ -153,8 +144,8 @@ export default function Admin() {
 
     try {
       const options = {
-        maxSizeMB: 0.15,
-        maxWidthOrHeight: 800,
+        maxSizeMB: 0.2,
+        maxWidthOrHeight: 900,
         useWebWorker: false,
       };
       const compressedFile = await imageCompression(file, options);
@@ -171,17 +162,8 @@ export default function Admin() {
       setStatusMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
-  };
-
-  const handleAddAdditionalImageUrl = () => {
-    const trimmed = additionalImageUrl.trim();
-    if (!trimmed) return;
-    setFormData(prev => ({
-      ...prev,
-      additionalImages: [...(prev.additionalImages || []), trimmed]
-    }));
-    setAdditionalImageUrl('');
   };
 
   const handleRemoveAdditionalImage = (index: number) => {
@@ -212,119 +194,69 @@ export default function Admin() {
       hasSizes: false,
       additionalImages: []
     });
-    setImageLoadError(false);
-    setAdditionalImageUrl('');
     setStatusMessage(null);
   };
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
 
     if (!formData.imageUrl.trim()) {
-      setStatusMessage({ type: 'error', text: 'Please provide a product image URL or upload an image file.' });
+      setStatusMessage({ type: 'error', text: 'Please upload a product image.' });
       return;
     }
-
-    const parsedRating = formData.rating ? parseFloat(formData.rating) : null;
-    const productPayload: Product = {
-      id: editingId || Date.now().toString(),
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      price: formData.price.trim(),
-      mrp: formData.mrp?.trim() || undefined,
-      discount: formData.discount?.trim() || undefined,
-      imageUrl: formData.imageUrl.trim(),
-      affiliateUrl: formData.affiliateUrl?.trim() || '',
-      category: formData.category,
-      imageBgColor: formData.imageBgColor || 'bg-stone-100',
-      rating: !isNaN(parsedRating as number) && parsedRating !== null ? parsedRating : undefined,
-      type: (formData.type as 'affiliate' | 'buy') || 'affiliate',
-      hasSizes: Boolean(formData.hasSizes),
-      additionalImages: formData.additionalImages?.filter(Boolean) || []
-    };
-
-    try {
-      if (editingId) {
-        await editProduct(productPayload);
-        setStatusMessage({ type: 'success', text: `Product "${productPayload.name}" updated successfully.` });
-        setEditingId(null);
-      } else {
-        await addProduct(productPayload);
-        setStatusMessage({ type: 'success', text: `Product "${productPayload.name}" added successfully.` });
-      }
-
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        mrp: '',
-        discount: '',
-        imageUrl: '',
-        affiliateUrl: '',
-        category: '',
-        imageBgColor: 'bg-stone-100',
-        rating: '',
-        type: 'affiliate',
-        hasSizes: false,
-        additionalImages: []
+    
+    if (editingId) {
+      editProduct({
+        id: editingId,
+        ...formData,
+        rating: formData.rating ? parseFloat(formData.rating) : undefined
       });
-      setImageLoadError(false);
-      setAdditionalImageUrl('');
-    } catch (err) {
-      console.error("Save error:", err);
-      setStatusMessage({ type: 'error', text: 'Failed to save product to Firebase. Please try again.' });
+      setStatusMessage({ type: 'success', text: `Product "${formData.name}" updated successfully.` });
+      setEditingId(null);
+    } else {
+      const newProduct: Product = {
+        id: Date.now().toString(),
+        ...formData,
+        rating: formData.rating ? parseFloat(formData.rating) : undefined
+      };
+      addProduct(newProduct);
+      setStatusMessage({ type: 'success', text: `Product "${formData.name}" added successfully.` });
     }
-  };
 
-  const handleDeleteProduct = async (id: string, name: string) => {
-    if (editingId === id) {
-      handleCancelEdit();
-    }
-    setDeletingId(id);
-    try {
-      await removeProduct(id);
-      setStatusMessage({ type: 'success', text: `Product "${name}" was deleted successfully.` });
-    } catch (err) {
-      console.error("Delete error:", err);
-      setStatusMessage({ type: 'error', text: `Failed to delete product "${name}".` });
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleDeleteLink = async (id: string, label: string) => {
-    if (editingLinkId === id) {
-      setEditingLinkId(null);
-      setLinkFormData({ label: '', url: '', section: 'explore' });
-    }
-    setDeletingLinkId(id);
-    try {
-      await removeLink(id);
-    } catch (err) {
-      console.error("Delete link error:", err);
-    } finally {
-      setDeletingLinkId(null);
-    }
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      mrp: '',
+      discount: '',
+      imageUrl: '',
+      affiliateUrl: '',
+      category: '',
+      imageBgColor: 'bg-stone-100',
+      rating: '',
+      type: 'affiliate',
+      hasSizes: false,
+      additionalImages: []
+    });
   };
 
   const handleLinkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (editingLinkId) {
       editLink({
         id: editingLinkId,
         ...linkFormData
       });
       setEditingLinkId(null);
+      setStatusMessage({ type: 'success', text: 'Navigation link updated successfully.' });
     } else {
-      addLink({
+      const newLink: NavLink = {
         id: Date.now().toString(),
         ...linkFormData
-      });
+      };
+      addLink(newLink);
+      setStatusMessage({ type: 'success', text: 'Navigation link added successfully.' });
     }
 
     setLinkFormData({
@@ -334,7 +266,7 @@ export default function Admin() {
     });
   };
 
-  const handleEditClick = (product: any) => {
+  const handleEditClick = (product: Product) => {
     setEditingId(product.id);
     setFormData({
       name: product.name,
@@ -351,16 +283,7 @@ export default function Admin() {
       hasSizes: product.hasSizes || false,
       additionalImages: product.additionalImages || []
     });
-    setImageLoadError(false);
-    setAdditionalImageUrl('');
     setStatusMessage(null);
-
-    // If existing product image is base64 or upload
-    if (product.imageUrl?.startsWith('data:')) {
-      setImageInputMode('upload');
-    } else {
-      setImageInputMode('url');
-    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -372,6 +295,20 @@ export default function Admin() {
       section: link.section
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleResetProducts = () => {
+    if (window.confirm("Restore original full collection products? Any custom additions will be replaced with defaults.")) {
+      resetProducts();
+      setStatusMessage({ type: 'success', text: 'All products restored to original website theme collection.' });
+    }
+  };
+
+  const handleResetLinks = () => {
+    if (window.confirm("Restore default navigation links?")) {
+      resetLinks();
+      setStatusMessage({ type: 'success', text: 'Navigation links restored to defaults.' });
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -407,7 +344,7 @@ export default function Admin() {
                 />
                 {error && <p className="text-rose-500 text-sm mt-2 text-center">{error}</p>}
               </div>
-              <button type="submit" className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors">
+              <button type="submit" className="w-full h-12 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-xl transition-colors cursor-pointer">
                 Unlock
               </button>
             </form>
@@ -423,19 +360,44 @@ export default function Admin() {
       <Header />
       
       <main className="flex-grow max-w-7xl mx-auto px-6 py-12 w-full">
-        <div className="flex items-center gap-6 border-b border-stone-200/50 mb-8">
-          <button 
-            onClick={() => setActiveTab('products')} 
-            className={`pb-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'products' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
-          >
-            Manage Products
-          </button>
-          <button 
-            onClick={() => setActiveTab('links')} 
-            className={`pb-4 text-sm font-medium transition-colors border-b-2 ${activeTab === 'links' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
-          >
-            Manage Navigation Links
-          </button>
+        <div className="flex items-center justify-between border-b border-stone-200/50 mb-8 pb-1">
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setActiveTab('products')} 
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 cursor-pointer ${activeTab === 'products' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
+            >
+              Manage Products ({products.length})
+            </button>
+            <button 
+              onClick={() => setActiveTab('links')} 
+              className={`pb-3 text-sm font-medium transition-colors border-b-2 cursor-pointer ${activeTab === 'links' ? 'border-stone-900 text-stone-900' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
+            >
+              Manage Navigation Links ({links.length})
+            </button>
+          </div>
+          <div>
+            {activeTab === 'products' ? (
+              <button
+                type="button"
+                onClick={handleResetProducts}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                title="Restore default collection products"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restore Theme Defaults</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResetLinks}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                title="Restore default navigation links"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restore Links</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {activeTab === 'products' ? (
@@ -470,8 +432,29 @@ export default function Admin() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1">Product Name</label>
-                    <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="E.g. Ceramic Mug" />
+                    <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="E.g. Walnut Desk Shelf" />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Type</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <label className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${formData.type === 'affiliate' ? 'border-stone-900 bg-stone-50 text-stone-900' : 'border-stone-200 hover:bg-stone-50 text-stone-600'}`}>
+                        <input type="radio" name="type" value="affiliate" checked={formData.type === 'affiliate'} onChange={handleChange} className="hidden" />
+                        <span className="text-sm font-medium">Affiliate Link</span>
+                      </label>
+                      <label className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${formData.type === 'buy' ? 'border-stone-900 bg-stone-50 text-stone-900' : 'border-stone-200 hover:bg-stone-50 text-stone-600'}`}>
+                        <input type="radio" name="type" value="buy" checked={formData.type === 'buy'} onChange={handleChange} className="hidden" />
+                        <span className="text-sm font-medium">Direct Purchase</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {formData.type === 'affiliate' && (
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">Affiliate Link (URL)</label>
+                      <input required type="url" name="affiliateUrl" value={formData.affiliateUrl} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="https://amazon.com/..." />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -510,236 +493,79 @@ export default function Admin() {
                     <textarea required name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full p-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="Product details..." />
                   </div>
 
-                  {/* Product Image Section */}
+                  {/* Clean Device Image Upload */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-stone-700">Product Image</label>
-                      <span className="text-[11px] text-stone-400 font-medium">URL or Device Upload</span>
-                    </div>
-
-                    {/* Mode Toggle */}
-                    <div className="grid grid-cols-2 gap-1 p-1 bg-stone-100 rounded-lg mb-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setImageInputMode('url')}
-                        className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
-                          imageInputMode === 'url'
-                            ? 'bg-white text-stone-900 shadow-xs'
-                            : 'text-stone-500 hover:text-stone-800'
-                        }`}
-                      >
-                        <LinkIcon className="w-3.5 h-3.5" />
-                        <span>Image URL</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setImageInputMode('upload')}
-                        className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
-                          imageInputMode === 'upload'
-                            ? 'bg-white text-stone-900 shadow-xs'
-                            : 'text-stone-500 hover:text-stone-800'
-                        }`}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Upload File</span>
-                      </button>
-                    </div>
-
-                    {/* Image URL Input Option */}
-                    {imageInputMode === 'url' ? (
-                      <div className="space-y-1.5">
-                        <div className="relative">
-                          <input
-                            type="url"
-                            name="imageUrl"
-                            value={formData.imageUrl.startsWith('data:') ? '' : formData.imageUrl}
-                            onChange={(e) => {
-                              setImageLoadError(false);
-                              setFormData(prev => ({ ...prev, imageUrl: e.target.value.trim() }));
-                            }}
-                            placeholder="https://images.unsplash.com/... or CDN link"
-                            className="w-full h-10 pl-3 pr-8 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 placeholder:text-stone-400"
-                          />
-                          {formData.imageUrl && !formData.imageUrl.startsWith('data:') && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, imageUrl: '' }));
-                                setImageLoadError(false);
-                              }}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5"
-                              title="Clear URL"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-stone-500">
-                          Paste a direct web image link (JPEG, PNG, WEBP, or Unsplash URL).
-                        </p>
-                      </div>
-                    ) : (
-                      /* Upload File Option */
-                      <div className="space-y-1.5">
-                        <label className="flex items-center justify-center gap-2 px-4 py-3 bg-stone-100 hover:bg-stone-200 border border-stone-200 border-dashed rounded-lg cursor-pointer transition-colors w-full">
-                          {isUploading ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-stone-600" />
-                          ) : (
-                            <Upload className="w-4 h-4 text-stone-600" />
-                          )}
-                          <span className="text-xs font-medium text-stone-700">
-                            {isUploading ? 'Compressing & uploading...' : 'Choose image file from device'}
-                          </span>
-                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                        </label>
-                        <p className="text-[11px] text-stone-500">
-                          Max 5MB (JPG, PNG, WEBP). Compressed automatically.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Attached Image Preview Card */}
-                    {formData.imageUrl && (
-                      <div className="mt-3 p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center gap-3">
-                        <div className={`w-14 h-14 rounded-lg overflow-hidden border border-stone-200 shrink-0 ${formData.imageBgColor || 'bg-stone-100'} flex items-center justify-center relative`}>
-                          <img
-                            src={formData.imageUrl}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                            onError={() => setImageLoadError(true)}
-                            onLoad={() => setImageLoadError(false)}
-                          />
-                          {imageLoadError && (
-                            <div className="absolute inset-0 bg-rose-50/95 text-rose-600 flex flex-col items-center justify-center p-1 text-[10px] text-center font-medium">
-                              <AlertCircle className="w-3.5 h-3.5 mb-0.5" />
-                              <span>Invalid link</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`inline-block w-2 h-2 rounded-full ${imageLoadError ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                            <span className="text-xs font-medium text-stone-800">
-                              {imageLoadError ? 'Image failed to load' : 'Image attached'}
-                            </span>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Image</label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg cursor-pointer transition-colors">
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-stone-600" /> : <Upload className="w-4 h-4 text-stone-600" />}
+                        <span className="text-sm font-medium text-stone-700">{isUploading ? 'Uploading...' : 'Choose Image'}</span>
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      </label>
+                      {formData.imageUrl && (
+                        <div className="relative group">
+                          <div className="h-12 w-12 rounded-lg overflow-hidden border border-stone-200 shrink-0 bg-stone-50">
+                            <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
                           </div>
-                          <p className="text-[11px] text-stone-400 truncate mt-0.5">
-                            {formData.imageUrl.startsWith('data:') ? 'Uploaded local file (Base64)' : formData.imageUrl}
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                            className="absolute -top-1.5 -right-1.5 bg-stone-800 text-white rounded-full p-0.5 shadow hover:bg-rose-600 transition-colors"
+                            title="Remove image"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, imageUrl: '' }));
-                            setImageLoadError(false);
-                          }}
-                          className="p-1.5 text-stone-400 hover:text-rose-500 rounded-lg hover:bg-stone-200/60 transition-colors"
-                          title="Remove image"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      )}
+                    </div>
+                    {!formData.imageUrl && (
+                      <p className="text-xs text-stone-400 mt-1">Select an image file from your device (JPG, PNG, WEBP, up to 5MB).</p>
                     )}
                   </div>
 
-                  {/* Additional Images Section */}
+                  {/* Additional Images (Upload only) */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-stone-700">Additional Images (Optional)</label>
-                      <span className="text-[11px] text-stone-400 font-medium">Gallery</span>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Additional Images (Optional)</label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex items-center justify-center gap-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg cursor-pointer transition-colors text-xs font-medium text-stone-700">
+                        {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                        <span>Add Image</span>
+                        <input type="file" accept="image/*" onChange={handleAdditionalImageUpload} className="hidden" />
+                      </label>
+                      {formData.additionalImages?.map((img, idx) => (
+                        <div key={idx} className="relative h-12 w-12 rounded-lg overflow-hidden border border-stone-200 shrink-0 bg-stone-50 group">
+                          <img src={img} alt={`Additional ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdditionalImage(idx)}
+                            className="absolute inset-0 bg-stone-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-
-                    <div className="space-y-2 mb-3">
-                      {/* Add via URL */}
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={additionalImageUrl}
-                          onChange={(e) => setAdditionalImageUrl(e.target.value)}
-                          placeholder="Attach extra image by URL..."
-                          className="flex-1 h-9 px-3 rounded-lg border border-stone-200 bg-stone-50 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900/10 placeholder:text-stone-400"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddAdditionalImageUrl();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddAdditionalImageUrl}
-                          disabled={!additionalImageUrl.trim()}
-                          className="px-3 h-9 bg-stone-100 hover:bg-stone-200 text-stone-800 disabled:opacity-50 text-xs font-medium rounded-lg border border-stone-200 transition-colors flex items-center gap-1 shrink-0"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add URL</span>
-                        </button>
-                      </div>
-
-                      {/* Add via File Upload */}
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors text-xs font-medium text-stone-700">
-                          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                          <span>Upload extra file</span>
-                          <input type="file" accept="image/*" onChange={handleAdditionalImageUpload} className="hidden" />
-                        </label>
-                        <span className="text-[11px] text-stone-400">or paste direct image URL above</span>
-                      </div>
-                    </div>
-
-                    {/* Attached Gallery Grid */}
-                    {formData.additionalImages && formData.additionalImages.length > 0 && (
-                      <div className="flex flex-wrap gap-2.5 p-2.5 bg-stone-50 rounded-xl border border-stone-200">
-                        {formData.additionalImages.map((img, idx) => (
-                          <div key={idx} className="relative h-14 w-14 rounded-lg overflow-hidden border border-stone-200 shrink-0 bg-white group shadow-xs">
-                            <img
-                              src={img}
-                              alt={`Additional ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAdditionalImage(idx)}
-                              className="absolute inset-0 bg-stone-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Remove image"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Type</label>
-                    <select required name="type" value={formData.type} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10">
-                      <option value="affiliate">Affiliate Product (External Link)</option>
-                      <option value="buy">Direct Buy (Razorpay Checkout)</option>
-                    </select>
-                  </div>
-
-                  {formData.type === 'affiliate' && (
-                    <div>
-                      <label className="block text-sm font-medium text-stone-600 mb-1">Affiliate Link</label>
-                      <input required={formData.type === 'affiliate'} type="url" name="affiliateUrl" value={formData.affiliateUrl} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="https://amazon.com/..." />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Background Color Class</label>
+                    <label className="block text-sm font-medium text-stone-600 mb-1">Image Background Tint</label>
                     <select name="imageBgColor" value={formData.imageBgColor} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10">
-                      <option value="bg-stone-100">Stone</option>
-                      <option value="bg-rose-50">Rose</option>
-                      <option value="bg-teal-50">Teal</option>
-                      <option value="bg-sky-50">Sky</option>
-                      <option value="bg-amber-50">Amber</option>
+                      <option value="bg-stone-100">Stone 100 (Default Neutral)</option>
+                      <option value="bg-[#F2EFE9]">Warm Sand / Ivory (#F2EFE9)</option>
+                      <option value="bg-[#EDEDED]">Cool Grey (#EDEDED)</option>
+                      <option value="bg-[#F5F2ED]">Soft Cream (#F5F2ED)</option>
+                      <option value="bg-[#F4F0EB]">Warm Linen (#F4F0EB)</option>
+                      <option value="bg-[#ECE8E1]">Muted Khaki (#ECE8E1)</option>
+                      <option value="bg-[#F2EFEA]">Oatmeal (#F2EFEA)</option>
+                      <option value="bg-[#EFECE8]">Pebble (#EFECE8)</option>
+                      <option value="bg-[#EAE8E3]">Muted Taupe (#EAE8E3)</option>
+                      <option value="bg-white">Pure White</option>
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4">
-                    <input type="checkbox" id="hasSizes" name="hasSizes" checked={formData.hasSizes} onChange={handleChange} className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+                  <div className="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="hasSizes" name="hasSizes" checked={formData.hasSizes} onChange={handleChange} className="rounded border-stone-300 text-stone-900 focus:ring-stone-900/20" />
                     <label htmlFor="hasSizes" className="text-sm font-medium text-stone-600">Product has clothing sizes</label>
                   </div>
 
@@ -747,7 +573,7 @@ export default function Admin() {
                     <button 
                       type="submit" 
                       disabled={isUploading || !formData.imageUrl} 
-                      className="flex-1 h-10 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 h-10 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {editingId ? (
                         <>
@@ -765,7 +591,7 @@ export default function Admin() {
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="px-4 h-10 border border-stone-200 hover:bg-stone-100 text-stone-600 font-medium rounded-lg text-sm transition-colors"
+                        className="px-4 h-10 border border-stone-200 hover:bg-stone-100 text-stone-600 font-medium rounded-lg text-sm transition-colors cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -777,7 +603,9 @@ export default function Admin() {
 
             {/* List Section */}
             <div className="lg:col-span-2">
-              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Products ({products.length})</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-medium text-stone-800">Products ({products.length})</h2>
+              </div>
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200/50 overflow-hidden">
                 <ul className="divide-y divide-stone-100">
                   {products.map(product => (
@@ -799,11 +627,6 @@ export default function Admin() {
                       <div className="flex-grow min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-medium text-stone-800 truncate">{product.name}</h3>
-                          {product.imageUrl?.startsWith('http') && (
-                            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded font-mono shrink-0">
-                              URL
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs text-stone-500 truncate mt-0.5">
                           {product.category} • {product.price} {product.mrp && <span className="line-through opacity-70 ml-1">{product.mrp}</span>}
@@ -817,32 +640,17 @@ export default function Admin() {
                             View Link
                           </a>
                         )}
-                        <button 
-                          type="button"
-                          onClick={() => handleEditClick(product)} 
-                          className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" 
-                          title="Edit Product"
-                        >
+                        <button onClick={() => handleEditClick(product)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0 cursor-pointer" title="Edit Product">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
-                          type="button"
-                          disabled={deletingId === product.id}
-                          onClick={() => handleDeleteProduct(product.id, product.name)} 
-                          className="p-2 text-stone-400 hover:text-rose-500 disabled:opacity-50 transition-colors" 
-                          title="Delete Product"
-                        >
-                          {deletingId === product.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
+                        <button onClick={() => removeProduct(product.id)} className="p-2 text-stone-400 hover:text-rose-500 transition-colors cursor-pointer" title="Delete Product">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </li>
                   ))}
                   {products.length === 0 && (
-                    <li className="p-8 text-center text-stone-500 text-sm">No products added yet.</li>
+                    <li className="p-8 text-center text-stone-500 text-sm">No products in collection.</li>
                   )}
                 </ul>
               </div>
@@ -874,7 +682,7 @@ export default function Admin() {
                     </select>
                   </div>
 
-                  <button type="submit" className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  <button type="submit" className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
                     {editingLinkId ? (
                       <>
                         <Edit2 className="w-4 h-4" />
@@ -893,7 +701,7 @@ export default function Admin() {
 
             {/* List Section */}
             <div className="lg:col-span-2">
-              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Links</h2>
+              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Links ({links.length})</h2>
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200/50 overflow-hidden">
                 <ul className="divide-y divide-stone-100">
                   {links.map(link => (
@@ -908,26 +716,11 @@ export default function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                        <button 
-                          type="button"
-                          onClick={() => handleEditLinkClick(link)} 
-                          className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" 
-                          title="Edit Link"
-                        >
+                        <button onClick={() => handleEditLinkClick(link)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0 cursor-pointer" title="Edit Link">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
-                          type="button"
-                          disabled={deletingLinkId === link.id}
-                          onClick={() => handleDeleteLink(link.id, link.label)} 
-                          className="p-2 text-stone-400 hover:text-rose-500 disabled:opacity-50 transition-colors" 
-                          title="Delete Link"
-                        >
-                          {deletingLinkId === link.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
+                        <button onClick={() => removeLink(link.id)} className="p-2 text-stone-400 hover:text-rose-500 transition-colors cursor-pointer" title="Delete Link">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </li>
