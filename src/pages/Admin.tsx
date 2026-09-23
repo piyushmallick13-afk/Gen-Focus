@@ -3,11 +3,21 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
-import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2, X } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Lock, 
+  Edit2, 
+  Link as LinkIcon, 
+  Upload, 
+  Loader2, 
+  X, 
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink
+} from 'lucide-react';
 import { NavLink } from '../types';
 import { allCategories } from '../data';
-import { storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 
 export default function Admin() {
@@ -50,6 +60,10 @@ export default function Admin() {
     additionalImages: []
   });
 
+  const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [additionalImageUrl, setAdditionalImageUrl] = useState('');
+  const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const [linkFormData, setLinkFormData] = useState({
@@ -68,21 +82,29 @@ export default function Admin() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert("Unsupported file format. Please upload a valid image file (e.g., JPG, PNG, WEBP).");
+      setStatusMessage({
+        type: 'error',
+        text: 'Unsupported file format. Please upload a valid image file (e.g. JPG, PNG, WEBP).'
+      });
       return;
     }
 
     // Check size
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
-      alert("Image size exceeds maximum limit of 5MB.");
+      setStatusMessage({
+        type: 'error',
+        text: 'Image size exceeds maximum limit of 5MB.'
+      });
       return;
     }
 
     // Immediately show a local preview to make UI feel instant
     const localPreviewUrl = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, imageUrl: localPreviewUrl }));
+    setImageLoadError(false);
     setIsUploading(true);
+    setStatusMessage(null);
 
     try {
       // Compress the image to a smaller size to store directly in Firestore
@@ -94,7 +116,7 @@ export default function Admin() {
       
       const compressedFile = await imageCompression(file, options);
       
-      // Convert to Base64 directly (bypasses need for Firebase Storage setup/rules)
+      // Convert to Base64 directly
       const base64String = await imageCompression.getDataUrlFromFile(compressedFile);
       
       setFormData(prev => ({ ...prev, imageUrl: base64String })); 
@@ -104,7 +126,7 @@ export default function Admin() {
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-      alert(errorMessage);
+      setStatusMessage({ type: 'error', text: errorMessage });
       setFormData(prev => ({ ...prev, imageUrl: '' })); // Revert on failure
     } finally {
       setIsUploading(false);
@@ -116,17 +138,18 @@ export default function Admin() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert("Unsupported file format. Please upload a valid image file.");
+      setStatusMessage({ type: 'error', text: 'Unsupported file format. Please upload a valid image file.' });
       return;
     }
 
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
-      alert("Image size exceeds maximum limit of 5MB.");
+      setStatusMessage({ type: 'error', text: 'Image size exceeds maximum limit of 5MB.' });
       return;
     }
 
     setIsUploading(true);
+    setStatusMessage(null);
 
     try {
       const options = {
@@ -145,10 +168,20 @@ export default function Admin() {
       console.error("Upload failed", err);
       let errorMessage = "Failed to upload image. Please try again.";
       if (err instanceof Error) errorMessage = err.message;
-      alert(errorMessage);
+      setStatusMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAddAdditionalImageUrl = () => {
+    const trimmed = additionalImageUrl.trim();
+    if (!trimmed) return;
+    setFormData(prev => ({
+      ...prev,
+      additionalImages: [...(prev.additionalImages || []), trimmed]
+    }));
+    setAdditionalImageUrl('');
   };
 
   const handleRemoveAdditionalImage = (index: number) => {
@@ -162,8 +195,36 @@ export default function Admin() {
     setLinkFormData({ ...linkFormData, [e.target.name]: e.target.value });
   };
 
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      mrp: '',
+      discount: '',
+      imageUrl: '',
+      affiliateUrl: '',
+      category: '',
+      imageBgColor: 'bg-stone-100',
+      rating: '',
+      type: 'affiliate',
+      hasSizes: false,
+      additionalImages: []
+    });
+    setImageLoadError(false);
+    setAdditionalImageUrl('');
+    setStatusMessage(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setStatusMessage(null);
+
+    if (!formData.imageUrl.trim()) {
+      setStatusMessage({ type: 'error', text: 'Please provide a product image URL or upload an image file.' });
+      return;
+    }
     
     if (editingId) {
       editProduct({
@@ -171,6 +232,7 @@ export default function Admin() {
         ...formData,
         rating: formData.rating ? parseFloat(formData.rating) : undefined
       });
+      setStatusMessage({ type: 'success', text: `Product "${formData.name}" updated successfully.` });
       setEditingId(null);
     } else {
       const newProduct = {
@@ -179,6 +241,7 @@ export default function Admin() {
         rating: formData.rating ? parseFloat(formData.rating) : undefined
       };
       addProduct(newProduct);
+      setStatusMessage({ type: 'success', text: `Product "${formData.name}" added successfully.` });
     }
 
     setFormData({
@@ -196,6 +259,8 @@ export default function Admin() {
       hasSizes: false,
       additionalImages: []
     });
+    setImageLoadError(false);
+    setAdditionalImageUrl('');
   };
 
   const handleLinkSubmit = (e: React.FormEvent) => {
@@ -229,8 +294,8 @@ export default function Admin() {
       price: product.price,
       mrp: product.mrp || '',
       discount: product.discount || '',
-      imageUrl: product.imageUrl,
-      affiliateUrl: product.affiliateUrl,
+      imageUrl: product.imageUrl || '',
+      affiliateUrl: product.affiliateUrl || '',
       category: product.category,
       imageBgColor: product.imageBgColor || 'bg-stone-100',
       rating: product.rating ? product.rating.toString() : '',
@@ -238,6 +303,16 @@ export default function Admin() {
       hasSizes: product.hasSizes || false,
       additionalImages: product.additionalImages || []
     });
+    setImageLoadError(false);
+    setAdditionalImageUrl('');
+    setStatusMessage(null);
+
+    // If existing product image is base64 or upload
+    if (product.imageUrl?.startsWith('data:')) {
+      setImageInputMode('upload');
+    } else {
+      setImageInputMode('url');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -322,6 +397,28 @@ export default function Admin() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200/50 sticky top-28">
                 <h2 className="text-xl font-medium text-stone-800 mb-6">{editingId ? 'Edit Product' : 'Add New Product'}</h2>
                 
+                {statusMessage && (
+                  <div className={`mb-4 p-3 rounded-xl text-xs font-medium flex items-start gap-2.5 ${
+                    statusMessage.type === 'error' 
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200/80' 
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                  }`}>
+                    {statusMessage.type === 'error' ? (
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                    )}
+                    <span className="flex-1 leading-relaxed">{statusMessage.text}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setStatusMessage(null)} 
+                      className="text-current opacity-60 hover:opacity-100 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1">Product Name</label>
@@ -365,46 +462,206 @@ export default function Admin() {
                     <textarea required name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full p-3 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" placeholder="Product details..." />
                   </div>
 
+                  {/* Product Image Section */}
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Product Image</label>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors">
-                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        <span className="text-sm font-medium text-stone-700">{isUploading ? 'Uploading...' : 'Choose Image'}</span>
-                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      </label>
-                      {formData.imageUrl && (
-                        <div className="h-10 w-10 rounded overflow-hidden border border-stone-200 shrink-0 bg-stone-50">
-                          <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-stone-700">Product Image</label>
+                      <span className="text-[11px] text-stone-400 font-medium">URL or Device Upload</span>
                     </div>
-                    {!formData.imageUrl && (
-                       <p className="text-xs text-stone-500 mt-1">Image size: 2MB - 5MB limit.</p>
+
+                    {/* Mode Toggle */}
+                    <div className="grid grid-cols-2 gap-1 p-1 bg-stone-100 rounded-lg mb-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode('url')}
+                        className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          imageInputMode === 'url'
+                            ? 'bg-white text-stone-900 shadow-xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        <LinkIcon className="w-3.5 h-3.5" />
+                        <span>Image URL</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode('upload')}
+                        className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          imageInputMode === 'upload'
+                            ? 'bg-white text-stone-900 shadow-xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload File</span>
+                      </button>
+                    </div>
+
+                    {/* Image URL Input Option */}
+                    {imageInputMode === 'url' ? (
+                      <div className="space-y-1.5">
+                        <div className="relative">
+                          <input
+                            type="url"
+                            name="imageUrl"
+                            value={formData.imageUrl.startsWith('data:') ? '' : formData.imageUrl}
+                            onChange={(e) => {
+                              setImageLoadError(false);
+                              setFormData(prev => ({ ...prev, imageUrl: e.target.value.trim() }));
+                            }}
+                            placeholder="https://images.unsplash.com/... or CDN link"
+                            className="w-full h-10 pl-3 pr-8 rounded-lg border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 placeholder:text-stone-400"
+                          />
+                          {formData.imageUrl && !formData.imageUrl.startsWith('data:') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, imageUrl: '' }));
+                                setImageLoadError(false);
+                              }}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5"
+                              title="Clear URL"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-500">
+                          Paste a direct web image link (JPEG, PNG, WEBP, or Unsplash URL).
+                        </p>
+                      </div>
+                    ) : (
+                      /* Upload File Option */
+                      <div className="space-y-1.5">
+                        <label className="flex items-center justify-center gap-2 px-4 py-3 bg-stone-100 hover:bg-stone-200 border border-stone-200 border-dashed rounded-lg cursor-pointer transition-colors w-full">
+                          {isUploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-stone-600" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-stone-600" />
+                          )}
+                          <span className="text-xs font-medium text-stone-700">
+                            {isUploading ? 'Compressing & uploading...' : 'Choose image file from device'}
+                          </span>
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        </label>
+                        <p className="text-[11px] text-stone-500">
+                          Max 5MB (JPG, PNG, WEBP). Compressed automatically.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Attached Image Preview Card */}
+                    {formData.imageUrl && (
+                      <div className="mt-3 p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center gap-3">
+                        <div className={`w-14 h-14 rounded-lg overflow-hidden border border-stone-200 shrink-0 ${formData.imageBgColor || 'bg-stone-100'} flex items-center justify-center relative`}>
+                          <img
+                            src={formData.imageUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            onError={() => setImageLoadError(true)}
+                            onLoad={() => setImageLoadError(false)}
+                          />
+                          {imageLoadError && (
+                            <div className="absolute inset-0 bg-rose-50/95 text-rose-600 flex flex-col items-center justify-center p-1 text-[10px] text-center font-medium">
+                              <AlertCircle className="w-3.5 h-3.5 mb-0.5" />
+                              <span>Invalid link</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-block w-2 h-2 rounded-full ${imageLoadError ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                            <span className="text-xs font-medium text-stone-800">
+                              {imageLoadError ? 'Image failed to load' : 'Image attached'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                            {formData.imageUrl.startsWith('data:') ? 'Uploaded local file (Base64)' : formData.imageUrl}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, imageUrl: '' }));
+                            setImageLoadError(false);
+                          }}
+                          className="p-1.5 text-stone-400 hover:text-rose-500 rounded-lg hover:bg-stone-200/60 transition-colors"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
+                  {/* Additional Images Section */}
                   <div>
-                    <label className="block text-sm font-medium text-stone-600 mb-1">Additional Images (Optional)</label>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors">
-                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        <span className="text-sm font-medium text-stone-700">Add Image</span>
-                        <input type="file" accept="image/*" onChange={handleAdditionalImageUpload} className="hidden" />
-                      </label>
-                      {formData.additionalImages?.map((img, idx) => (
-                        <div key={idx} className="relative h-12 w-12 rounded overflow-hidden border border-stone-200 shrink-0 bg-stone-50 group">
-                          <img src={img} alt="Additional Preview" className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAdditionalImage(idx)}
-                            className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-stone-700">Additional Images (Optional)</label>
+                      <span className="text-[11px] text-stone-400 font-medium">Gallery</span>
                     </div>
+
+                    <div className="space-y-2 mb-3">
+                      {/* Add via URL */}
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={additionalImageUrl}
+                          onChange={(e) => setAdditionalImageUrl(e.target.value)}
+                          placeholder="Attach extra image by URL..."
+                          className="flex-1 h-9 px-3 rounded-lg border border-stone-200 bg-stone-50 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900/10 placeholder:text-stone-400"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddAdditionalImageUrl();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddAdditionalImageUrl}
+                          disabled={!additionalImageUrl.trim()}
+                          className="px-3 h-9 bg-stone-100 hover:bg-stone-200 text-stone-800 disabled:opacity-50 text-xs font-medium rounded-lg border border-stone-200 transition-colors flex items-center gap-1 shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add URL</span>
+                        </button>
+                      </div>
+
+                      {/* Add via File Upload */}
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-stone-100 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-200 transition-colors text-xs font-medium text-stone-700">
+                          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          <span>Upload extra file</span>
+                          <input type="file" accept="image/*" onChange={handleAdditionalImageUpload} className="hidden" />
+                        </label>
+                        <span className="text-[11px] text-stone-400">or paste direct image URL above</span>
+                      </div>
+                    </div>
+
+                    {/* Attached Gallery Grid */}
+                    {formData.additionalImages && formData.additionalImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2.5 p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+                        {formData.additionalImages.map((img, idx) => (
+                          <div key={idx} className="relative h-14 w-14 rounded-lg overflow-hidden border border-stone-200 shrink-0 bg-white group shadow-xs">
+                            <img
+                              src={img}
+                              alt={`Additional ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAdditionalImage(idx)}
+                              className="absolute inset-0 bg-stone-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove image"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -438,36 +695,69 @@ export default function Admin() {
                     <label htmlFor="hasSizes" className="text-sm font-medium text-stone-600">Product has clothing sizes</label>
                   </div>
 
-                  <button type="submit" disabled={isUploading || !formData.imageUrl} className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-                    {editingId ? (
-                      <>
-                        <Edit2 className="w-4 h-4" />
-                        Update Product
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Add Product
-                      </>
+                  <div className="flex items-center gap-2 mt-4">
+                    <button 
+                      type="submit" 
+                      disabled={isUploading || !formData.imageUrl} 
+                      className="flex-1 h-10 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {editingId ? (
+                        <>
+                          <Edit2 className="w-4 h-4" />
+                          Update Product
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Add Product
+                        </>
+                      )}
+                    </button>
+                    {editingId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-4 h-10 border border-stone-200 hover:bg-stone-100 text-stone-600 font-medium rounded-lg text-sm transition-colors"
+                      >
+                        Cancel
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </form>
               </div>
             </div>
 
             {/* List Section */}
             <div className="lg:col-span-2">
-              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Products</h2>
+              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Products ({products.length})</h2>
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200/50 overflow-hidden">
                 <ul className="divide-y divide-stone-100">
                   {products.map(product => (
                     <li key={product.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-stone-50 transition-colors">
-                      <div className={`w-16 h-16 rounded-lg ${product.imageBgColor || 'bg-stone-100'} flex-shrink-0 overflow-hidden relative`}>
-                        <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
+                      <div className={`w-16 h-16 rounded-lg ${product.imageBgColor || 'bg-stone-100'} flex-shrink-0 overflow-hidden relative border border-stone-200/60`}>
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name} 
+                          className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" 
+                          referrerPolicy="no-referrer"
+                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} 
+                        />
+                        {product.additionalImages && product.additionalImages.length > 0 && (
+                          <div className="absolute bottom-0 right-0 bg-stone-900/80 text-white text-[9px] px-1 py-0.5 rounded-tl font-medium">
+                            +{product.additionalImages.length}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-grow min-w-0">
-                        <h3 className="text-sm font-medium text-stone-800 truncate">{product.name}</h3>
-                        <p className="text-xs text-stone-500 truncate">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-medium text-stone-800 truncate">{product.name}</h3>
+                          {product.imageUrl?.startsWith('http') && (
+                            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded font-mono shrink-0">
+                              URL
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-stone-500 truncate mt-0.5">
                           {product.category} • {product.price} {product.mrp && <span className="line-through opacity-70 ml-1">{product.mrp}</span>}
                         </p>
                       </div>

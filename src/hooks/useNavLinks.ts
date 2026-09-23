@@ -12,8 +12,17 @@ const defaultLinks: NavLink[] = [
   { id: '6', label: 'Terms of Service', url: '#', section: 'legal' },
 ];
 
+const cleanLink = (link: NavLink): Record<string, any> => {
+  return {
+    id: String(link.id || ''),
+    label: String(link.label || ''),
+    url: String(link.url || '/'),
+    section: link.section === 'legal' ? 'legal' : 'explore'
+  };
+};
+
 export function useNavLinks() {
-  const [links, setLinks] = useState<NavLink[]>([]);
+  const [links, setLinks] = useState<NavLink[]>(defaultLinks);
 
   useEffect(() => {
     const linksRef = collection(db, 'nav_links');
@@ -21,12 +30,17 @@ export function useNavLinks() {
     const unsubscribe = onSnapshot(linksRef, async (snapshot) => {
       if (snapshot.empty) {
         // Seed default links
-        const batch = writeBatch(db);
-        defaultLinks.forEach(link => {
-          const docRef = doc(linksRef, link.id);
-          batch.set(docRef, link);
-        });
-        await batch.commit();
+        try {
+          const batch = writeBatch(db);
+          defaultLinks.forEach(link => {
+            const docRef = doc(linksRef, link.id);
+            batch.set(docRef, cleanLink(link));
+          });
+          await batch.commit();
+        } catch (e) {
+          console.warn("Could not seed default links to Firestore:", e);
+        }
+        setLinks(defaultLinks);
       } else {
         const fetchedLinks = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -37,6 +51,9 @@ export function useNavLinks() {
         fetchedLinks.sort((a, b) => Number(a.id) - Number(b.id));
         setLinks(fetchedLinks);
       }
+    }, (error) => {
+      console.warn("Firestore nav_links error, using default links:", error);
+      setLinks(defaultLinks);
     });
 
     return () => unsubscribe();
@@ -44,7 +61,7 @@ export function useNavLinks() {
 
   const addLink = async (link: NavLink) => {
     try {
-      await setDoc(doc(db, 'nav_links', link.id), link);
+      await setDoc(doc(db, 'nav_links', link.id), cleanLink(link));
     } catch (error) {
       console.error("Error adding link:", error);
     }
@@ -60,11 +77,29 @@ export function useNavLinks() {
 
   const editLink = async (updatedLink: NavLink) => {
     try {
-      await setDoc(doc(db, 'nav_links', updatedLink.id), updatedLink);
+      await setDoc(doc(db, 'nav_links', updatedLink.id), cleanLink(updatedLink));
     } catch (error) {
       console.error("Error editing link:", error);
     }
   };
 
-  return { links, addLink, removeLink, editLink };
+  const resetToDefaults = async () => {
+    try {
+      const batch = writeBatch(db);
+      links.forEach(l => {
+        batch.delete(doc(db, 'nav_links', l.id));
+      });
+      defaultLinks.forEach(link => {
+        const docRef = doc(db, 'nav_links', link.id);
+        batch.set(docRef, cleanLink(link));
+      });
+      await batch.commit();
+      setLinks(defaultLinks);
+    } catch (error) {
+      console.error("Error resetting links:", error);
+      setLinks(defaultLinks);
+    }
+  };
+
+  return { links, addLink, removeLink, editLink, resetToDefaults };
 }

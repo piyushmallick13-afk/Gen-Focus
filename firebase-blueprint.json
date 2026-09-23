@@ -10,8 +10,28 @@
         { "name": "mrp", "type": "string", "description": "Maximum retail price", "required": false },
         { "name": "imageUrl", "type": "string", "description": "Product image URL" },
         { "name": "category", "type": "string", "description": "Product category" },
+        { "name": "subCategory", "type": "string", "description": "Product subcategory", "required": false },
         { "name": "rating", "type": "number", "description": "Product rating", "required": false },
         { "name": "imageBgColor", "type": "string", "description": "Background color class", "required": false }
+      ],
+      "access": {
+        "create": "public",
+        "read": "public",
+        "update": "public",
+        "delete": "public"
+      }
+    },
+    {
+      "name": "categories",
+      "description": "Curated categories and departments with subcategory groups and tags",
+      "fields": [
+        { "name": "name", "type": "string", "description": "Category name" },
+        { "name": "tagline", "type": "string", "description": "Category tagline", "required": false },
+        { "name": "description", "type": "string", "description": "Category description", "required": false },
+        { "name": "image", "type": "string", "description": "Category image URL", "required": false },
+        { "name": "popularTags", "type": "array", "description": "Popular subcategory tags" },
+        { "name": "groups", "type": "array", "description": "Subcategory groups with items" },
+        { "name": "order", "type": "number", "description": "Display order", "required": false }
       ],
       "access": {
         "create": "public",

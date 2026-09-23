@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -12,7 +12,17 @@ const firebaseConfig = {
 };
 
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
-}, "ai-studio-genfocus-4421d6d5-bcda-4688-86d7-92ea1e9faec9");
+
+const DATABASE_ID = "ai-studio-genfocus-4421d6d5-bcda-4688-86d7-92ea1e9faec9";
+
+let dbInstance;
+try {
+  dbInstance = initializeFirestore(app, {
+    experimentalForceLongPolling: true
+  }, DATABASE_ID);
+} catch {
+  dbInstance = getFirestore(app, DATABASE_ID);
+}
+
+export const db = dbInstance;
 export const storage = getStorage(app);

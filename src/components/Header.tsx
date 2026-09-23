@@ -1,21 +1,24 @@
-import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown, ShoppingBag } from 'lucide-react';
+import { Search, Menu, Settings, X, Instagram, Clock, LayoutGrid, ChevronDown, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useNavLinks } from '../hooks/useNavLinks';
 import React, { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../hooks/useProducts';
-import { allCategories } from '../data';
+import { useCategories } from '../hooks/useCategories';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCart } from '../contexts/CartContext';
 
 export default function Header() {
-  const { links } = useNavLinks();
-  const exploreLinks = links.filter(link => link.section === 'explore');
+  const { categoryNames: allCategories, categoryDetailsMap: categoryDetails } = useCategories();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(true);
+  const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const activeCategory = searchParams.get('category') || 'All';
+  const activeSubCategory = searchParams.get('sub') || '';
   const sortBy = searchParams.get('sort') || 'latest';
   const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
@@ -27,11 +30,42 @@ export default function Header() {
 
   const categories = ['All', ...allCategories];
 
-  const handleCategoryChange = (category: string) => {
+  const handleNavMouseEnter = (cat: string) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredCategory(cat);
+  };
+
+  const handleNavMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCategory(null);
+    }, 180);
+  };
+
+  const handleCategorySelect = (category: string, subCategory?: string) => {
     setSearchParams(prev => {
-      prev.set('category', category);
+      if (category === 'All') {
+        prev.delete('category');
+        prev.delete('sub');
+      } else {
+        prev.set('category', category);
+        if (subCategory) {
+          prev.set('sub', subCategory);
+        } else {
+          prev.delete('sub');
+        }
+      }
       return prev;
     });
+    setHoveredCategory(null);
+    setIsDrawerOpen(false);
+    navigate('/');
+
+    // Smooth scroll down to products section
+    setTimeout(() => {
+      const el = document.getElementById('catalog-products');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleSortChange = (sort: 'latest' | 'price-asc' | 'price-desc') => {
@@ -76,7 +110,7 @@ export default function Header() {
   const allowedCategoriesSet = new Set(allCategories.map(c => c.toLowerCase()));
   const filteredSuggestions = searchQuery.trim() 
     ? products
-        .filter(p => allowedCategoriesSet.has((p.category || '').toLowerCase()))
+        .filter(p => allCategories.length === 0 || !p.category || allowedCategoriesSet.has(p.category.toLowerCase()))
         .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
         .slice(0, 5)
     : [];
@@ -93,18 +127,123 @@ export default function Header() {
           </button>
         </div>
         
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-full bg-stone-900 flex items-center justify-center text-white text-xs font-semibold tracking-wider transition-transform duration-200 group-hover:scale-105 shadow-xs">
+            g
+          </div>
           <span className="text-2xl font-display font-medium tracking-wide text-stone-800">
             genfocus
           </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-8">
-          {exploreLinks.map(link => (
-            <Link key={link.id} to={link.url} className="text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors">
-              {link.label}
-            </Link>
-          ))}
+        {/* Desktop Categories Navigation with Hover Mega Menus */}
+        <nav 
+          className="hidden lg:flex items-center gap-6 relative"
+          onMouseLeave={handleNavMouseLeave}
+        >
+          {allCategories.map((category) => {
+            const detail = categoryDetails[category];
+            const isHovered = hoveredCategory === category;
+            const isActive = activeCategory.toLowerCase() === category.toLowerCase();
+
+            return (
+              <div 
+                key={category} 
+                className="relative py-2"
+                onMouseEnter={() => handleNavMouseEnter(category)}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleCategorySelect(category)}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors py-1 px-2 rounded-lg ${
+                    isActive
+                      ? 'text-stone-900 font-semibold'
+                      : isHovered
+                      ? 'text-stone-900 bg-stone-100/80'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <span>{category}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isHovered ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown for hovered category */}
+                <AnimatePresence>
+                  {isHovered && detail && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      onMouseEnter={() => handleNavMouseEnter(category)}
+                      onMouseLeave={handleNavMouseLeave}
+                      className="absolute top-full left-1/2 -translate-x-1/2 w-80 bg-white border border-stone-200/80 rounded-2xl shadow-xl p-5 z-50 mt-1"
+                    >
+                      <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Department</p>
+                          <h4 className="text-sm font-display font-medium text-stone-900">{category}</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCategorySelect(category)}
+                          className="text-xs text-stone-500 hover:text-stone-900 font-medium flex items-center gap-1"
+                        >
+                          <span>All</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Related Categories */}
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 block mb-1.5">
+                            Related Categories
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(detail.popularTags || []).map(tag => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => handleCategorySelect(category, tag)}
+                                className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                                  activeSubCategory.toLowerCase() === tag.toLowerCase()
+                                    ? 'bg-stone-900 text-white font-medium'
+                                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                                }`}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-stone-100 pt-2 space-y-1">
+                          {(detail.groups || []).slice(0, 2).map((grp, i) => (
+                            <div key={i} className="text-xs">
+                              <span className="font-semibold text-stone-700 text-[11px] block mb-1">{grp.title}</span>
+                              <div className="flex flex-wrap gap-1">
+                                {(grp.items || []).slice(0, 4).map(item => (
+                                  <button
+                                    key={item}
+                                    type="button"
+                                    onClick={() => handleCategorySelect(category, item)}
+                                    className="text-[11px] px-2 py-0.5 rounded text-stone-600 hover:bg-stone-50 hover:text-stone-900 border border-stone-100"
+                                  >
+                                    {item}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-4 relative">
@@ -260,7 +399,7 @@ export default function Header() {
                   >
                     <span className="flex items-center gap-2">
                       <LayoutGrid className="w-4 h-4 text-stone-400" />
-                      Categories
+                      Departments & Categories
                     </span>
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -272,29 +411,74 @@ export default function Header() {
                         exit="hidden"
                         variants={{
                           hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] } },
-                          visible: { height: 'auto', opacity: 1, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98], staggerChildren: 0.05 } }
+                          visible: { height: 'auto', opacity: 1, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] } }
                         }}
-                        className="overflow-hidden"
+                        className="overflow-hidden space-y-2 pb-4"
                       >
-                        <div className="flex flex-wrap gap-2 pb-4">
-                          {categories.map(category => (
-                            <motion.button
-                              variants={{
-                                hidden: { opacity: 0, y: 10 },
-                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] } }
-                              }}
-                              key={category}
-                              onClick={() => { handleCategoryChange(category); setIsDrawerOpen(false); }}
-                              className={`px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
-                                activeCategory === category
-                                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                                  : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300 hover:bg-stone-50'
-                              }`}
-                            >
-                              {category}
-                            </motion.button>
-                          ))}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCategorySelect('All')}
+                          className={`w-full text-left px-3 py-2 text-xs font-medium rounded-lg transition-all border ${
+                            activeCategory === 'All' && !activeSubCategory
+                              ? 'bg-stone-900 text-white border-stone-900'
+                              : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          All Collections
+                        </button>
+
+                        {allCategories.map(category => {
+                          const detail = categoryDetails[category];
+                          const isExpanded = expandedMobileCategory === category;
+                          const isCatActive = activeCategory.toLowerCase() === category.toLowerCase();
+
+                          return (
+                            <div key={category} className="border border-stone-200 rounded-xl overflow-hidden bg-white">
+                              <div className="flex items-center justify-between p-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCategorySelect(category)}
+                                  className={`text-xs font-medium text-left flex-1 ${
+                                    isCatActive ? 'text-stone-950 font-semibold' : 'text-stone-700'
+                                  }`}
+                                >
+                                  {category}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedMobileCategory(isExpanded ? null : category)}
+                                  className="p-1 text-stone-400 hover:text-stone-900"
+                                >
+                                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                              </div>
+
+                              {isExpanded && detail && (
+                                <div className="bg-stone-50 p-2.5 border-t border-stone-100 space-y-2">
+                                  <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block">
+                                    Related Categories:
+                                  </span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {(detail.popularTags || []).map(tag => (
+                                      <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => handleCategorySelect(category, tag)}
+                                        className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                                          activeSubCategory.toLowerCase() === tag.toLowerCase()
+                                            ? 'bg-stone-900 text-white border-stone-900'
+                                            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100'
+                                        }`}
+                                      >
+                                        {tag}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </motion.div>
                     )}
                   </AnimatePresence>
