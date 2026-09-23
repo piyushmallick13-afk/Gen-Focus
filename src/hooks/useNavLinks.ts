@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from '../types';
-import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 const defaultLinks: NavLink[] = [
   { id: '1', label: 'Workspace', url: '/', section: 'explore' },
@@ -12,48 +12,55 @@ const defaultLinks: NavLink[] = [
   { id: '6', label: 'Terms of Service', url: '#', section: 'legal' },
 ];
 
-const cleanLink = (link: NavLink): Record<string, any> => {
-  return {
-    id: String(link.id || ''),
-    label: String(link.label || ''),
-    url: String(link.url || '/'),
-    section: link.section === 'legal' ? 'legal' : 'explore'
-  };
-};
+let hasCheckedNavSeed = false;
 
 export function useNavLinks() {
-  const [links, setLinks] = useState<NavLink[]>(defaultLinks);
+  const [links, setLinks] = useState<NavLink[]>([]);
 
   useEffect(() => {
     const linksRef = collection(db, 'nav_links');
-    
-    const unsubscribe = onSnapshot(linksRef, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed default links
-        try {
+    const systemNavDocRef = doc(db, 'system', 'nav_state');
+
+    const checkAndSeedNav = async () => {
+      if (hasCheckedNavSeed) return;
+      hasCheckedNavSeed = true;
+
+      try {
+        const systemSnap = await getDoc(systemNavDocRef);
+        if (!systemSnap.exists()) {
           const batch = writeBatch(db);
           defaultLinks.forEach(link => {
             const docRef = doc(linksRef, link.id);
-            batch.set(docRef, cleanLink(link));
+            batch.set(docRef, link);
           });
+          batch.set(systemNavDocRef, { seeded: true, initializedAt: new Date().toISOString() });
           await batch.commit();
-        } catch (e) {
-          console.warn("Could not seed default links to Firestore:", e);
         }
-        setLinks(defaultLinks);
-      } else {
-        const fetchedLinks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as NavLink));
-        
-        // Sort by ID assuming they are added chronologically or ordered
-        fetchedLinks.sort((a, b) => Number(a.id) - Number(b.id));
-        setLinks(fetchedLinks);
+      } catch (err) {
+        console.error("Initial nav links seeding check error:", err);
       }
+    };
+
+    checkAndSeedNav();
+
+    const unsubscribe = onSnapshot(linksRef, (snapshot) => {
+      const fetchedLinks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as NavLink));
+
+      fetchedLinks.sort((a, b) => {
+        const numA = Number(a.id);
+        const numB = Number(b.id);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.id.localeCompare(b.id);
+      });
+
+      setLinks(fetchedLinks);
     }, (error) => {
-      console.warn("Firestore nav_links error, using default links:", error);
-      setLinks(defaultLinks);
+      handleFirestoreError(error, OperationType.GET, 'nav_links');
     });
 
     return () => unsubscribe();
@@ -61,9 +68,9 @@ export function useNavLinks() {
 
   const addLink = async (link: NavLink) => {
     try {
-      await setDoc(doc(db, 'nav_links', link.id), cleanLink(link));
+      await setDoc(doc(db, 'nav_links', link.id), link);
     } catch (error) {
-      console.error("Error adding link:", error);
+      handleFirestoreError(error, OperationType.CREATE, `nav_links/${link.id}`);
     }
   };
 
@@ -71,35 +78,17 @@ export function useNavLinks() {
     try {
       await deleteDoc(doc(db, 'nav_links', id));
     } catch (error) {
-      console.error("Error removing link:", error);
+      handleFirestoreError(error, OperationType.DELETE, `nav_links/${id}`);
     }
   };
 
   const editLink = async (updatedLink: NavLink) => {
     try {
-      await setDoc(doc(db, 'nav_links', updatedLink.id), cleanLink(updatedLink));
+      await setDoc(doc(db, 'nav_links', updatedLink.id), updatedLink);
     } catch (error) {
-      console.error("Error editing link:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `nav_links/${updatedLink.id}`);
     }
   };
 
-  const resetToDefaults = async () => {
-    try {
-      const batch = writeBatch(db);
-      links.forEach(l => {
-        batch.delete(doc(db, 'nav_links', l.id));
-      });
-      defaultLinks.forEach(link => {
-        const docRef = doc(db, 'nav_links', link.id);
-        batch.set(docRef, cleanLink(link));
-      });
-      await batch.commit();
-      setLinks(defaultLinks);
-    } catch (error) {
-      console.error("Error resetting links:", error);
-      setLinks(defaultLinks);
-    }
-  };
-
-  return { links, addLink, removeLink, editLink, resetToDefaults };
+  return { links, addLink, removeLink, editLink };
 }

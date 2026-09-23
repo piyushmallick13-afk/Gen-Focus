@@ -1,56 +1,74 @@
 import { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { products as defaultProducts } from '../data';
-import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch, getDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
-const cleanProduct = (p: Partial<Product>): Record<string, any> => {
-  const cleaned: Record<string, any> = {};
-  for (const [k, v] of Object.entries(p)) {
-    if (v !== undefined) {
-      cleaned[k] = v;
+let hasCheckedSeed = false;
+
+// Helper to remove any undefined properties before writing to Firestore
+function sanitizeProduct(product: Product): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(product)) {
+    if (value !== undefined) {
+      clean[key] = value;
     }
   }
-  return cleaned;
-};
+  return clean;
+}
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const productsRef = collection(db, 'products');
-    
-    const unsubscribe = onSnapshot(productsRef, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed default products to Firestore if empty
-        try {
+    const systemDocRef = doc(db, 'system', 'app_state');
+
+    // Only seed once on initial app deployment if never seeded before
+    const checkAndSeed = async () => {
+      if (hasCheckedSeed) return;
+      hasCheckedSeed = true;
+
+      try {
+        const systemSnap = await getDoc(systemDocRef);
+        if (!systemSnap.exists()) {
+          // System has never been seeded before
           const batch = writeBatch(db);
           defaultProducts.forEach(prod => {
             const docRef = doc(productsRef, prod.id);
-            batch.set(docRef, cleanProduct(prod));
+            batch.set(docRef, sanitizeProduct(prod));
           });
+          batch.set(systemDocRef, { seeded: true, initializedAt: new Date().toISOString() });
           await batch.commit();
-        } catch (e) {
-          console.warn("Could not seed default products to Firestore:", e);
         }
-        setProducts(defaultProducts);
-        setLoading(false);
-      } else {
-        const fetchedProducts = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Product));
-        
-        // Sort by ID assuming they are added chronologically or ordered
-        fetchedProducts.sort((a, b) => Number(a.id) - Number(b.id));
-        setProducts(fetchedProducts);
-        setLoading(false);
+      } catch (err) {
+        console.error("Initial seeding check error:", err);
       }
-    }, (error) => {
-      console.warn("Firestore products snapshot error, using default products:", error);
-      setProducts(defaultProducts);
+    };
+
+    checkAndSeed();
+
+    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Product));
+
+      // Stable sorting: numeric IDs in order, followed by timestamp / string IDs
+      fetchedProducts.sort((a, b) => {
+        const numA = Number(a.id);
+        const numB = Number(b.id);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.id.localeCompare(b.id);
+      });
+
+      setProducts(fetchedProducts);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'products');
     });
 
     return () => unsubscribe();
@@ -58,9 +76,10 @@ export function useProducts() {
 
   const addProduct = async (product: Product) => {
     try {
-      await setDoc(doc(db, 'products', product.id), cleanProduct(product));
+      const sanitized = sanitizeProduct(product);
+      await setDoc(doc(db, 'products', product.id), sanitized);
     } catch (error) {
-      console.error("Error adding product:", error);
+      handleFirestoreError(error, OperationType.CREATE, `products/${product.id}`);
     }
   };
 
@@ -68,36 +87,18 @@ export function useProducts() {
     try {
       await deleteDoc(doc(db, 'products', id));
     } catch (error) {
-      console.error("Error removing product:", error);
+      handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
     }
   };
 
   const editProduct = async (updatedProduct: Product) => {
     try {
-      await setDoc(doc(db, 'products', updatedProduct.id), cleanProduct(updatedProduct));
+      const sanitized = sanitizeProduct(updatedProduct);
+      await setDoc(doc(db, 'products', updatedProduct.id), sanitized);
     } catch (error) {
-      console.error("Error editing product:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `products/${updatedProduct.id}`);
     }
   };
 
-  const resetToDefaults = async () => {
-    try {
-      const batch = writeBatch(db);
-      products.forEach(p => {
-        batch.delete(doc(db, 'products', p.id));
-      });
-      defaultProducts.forEach(prod => {
-        const docRef = doc(db, 'products', prod.id);
-        batch.set(docRef, cleanProduct(prod));
-      });
-      await batch.commit();
-      setProducts(defaultProducts);
-    } catch (error) {
-      console.error("Error resetting products:", error);
-      setProducts(defaultProducts);
-    }
-  };
-
-  return { products, loading, addProduct, removeProduct, editProduct, resetToDefaults };
+  return { products, loading, addProduct, removeProduct, editProduct };
 }
-

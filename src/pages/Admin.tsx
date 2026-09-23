@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
-import { NavLink } from '../types';
+import { Product, NavLink } from '../types';
 import { allCategories } from '../data';
 import imageCompression from 'browser-image-compression';
 
@@ -217,7 +217,10 @@ export default function Admin() {
     setStatusMessage(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
 
@@ -225,42 +228,87 @@ export default function Admin() {
       setStatusMessage({ type: 'error', text: 'Please provide a product image URL or upload an image file.' });
       return;
     }
-    
-    if (editingId) {
-      editProduct({
-        id: editingId,
-        ...formData,
-        rating: formData.rating ? parseFloat(formData.rating) : undefined
-      });
-      setStatusMessage({ type: 'success', text: `Product "${formData.name}" updated successfully.` });
-      setEditingId(null);
-    } else {
-      const newProduct = {
-        id: Date.now().toString(),
-        ...formData,
-        rating: formData.rating ? parseFloat(formData.rating) : undefined
-      };
-      addProduct(newProduct);
-      setStatusMessage({ type: 'success', text: `Product "${formData.name}" added successfully.` });
-    }
 
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      mrp: '',
-      discount: '',
-      imageUrl: '',
-      affiliateUrl: '',
-      category: '',
-      imageBgColor: 'bg-stone-100',
-      rating: '',
-      type: 'affiliate',
-      hasSizes: false,
-      additionalImages: []
-    });
-    setImageLoadError(false);
-    setAdditionalImageUrl('');
+    const parsedRating = formData.rating ? parseFloat(formData.rating) : null;
+    const productPayload: Product = {
+      id: editingId || Date.now().toString(),
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      price: formData.price.trim(),
+      mrp: formData.mrp?.trim() || undefined,
+      discount: formData.discount?.trim() || undefined,
+      imageUrl: formData.imageUrl.trim(),
+      affiliateUrl: formData.affiliateUrl?.trim() || '',
+      category: formData.category,
+      imageBgColor: formData.imageBgColor || 'bg-stone-100',
+      rating: !isNaN(parsedRating as number) && parsedRating !== null ? parsedRating : undefined,
+      type: (formData.type as 'affiliate' | 'buy') || 'affiliate',
+      hasSizes: Boolean(formData.hasSizes),
+      additionalImages: formData.additionalImages?.filter(Boolean) || []
+    };
+
+    try {
+      if (editingId) {
+        await editProduct(productPayload);
+        setStatusMessage({ type: 'success', text: `Product "${productPayload.name}" updated successfully.` });
+        setEditingId(null);
+      } else {
+        await addProduct(productPayload);
+        setStatusMessage({ type: 'success', text: `Product "${productPayload.name}" added successfully.` });
+      }
+
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        mrp: '',
+        discount: '',
+        imageUrl: '',
+        affiliateUrl: '',
+        category: '',
+        imageBgColor: 'bg-stone-100',
+        rating: '',
+        type: 'affiliate',
+        hasSizes: false,
+        additionalImages: []
+      });
+      setImageLoadError(false);
+      setAdditionalImageUrl('');
+    } catch (err) {
+      console.error("Save error:", err);
+      setStatusMessage({ type: 'error', text: 'Failed to save product to Firebase. Please try again.' });
+    }
+  };
+
+  const handleDeleteProduct = async (id: string, name: string) => {
+    if (editingId === id) {
+      handleCancelEdit();
+    }
+    setDeletingId(id);
+    try {
+      await removeProduct(id);
+      setStatusMessage({ type: 'success', text: `Product "${name}" was deleted successfully.` });
+    } catch (err) {
+      console.error("Delete error:", err);
+      setStatusMessage({ type: 'error', text: `Failed to delete product "${name}".` });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteLink = async (id: string, label: string) => {
+    if (editingLinkId === id) {
+      setEditingLinkId(null);
+      setLinkFormData({ label: '', url: '', section: 'explore' });
+    }
+    setDeletingLinkId(id);
+    try {
+      await removeLink(id);
+    } catch (err) {
+      console.error("Delete link error:", err);
+    } finally {
+      setDeletingLinkId(null);
+    }
   };
 
   const handleLinkSubmit = (e: React.FormEvent) => {
@@ -769,11 +817,26 @@ export default function Admin() {
                             View Link
                           </a>
                         )}
-                        <button onClick={() => handleEditClick(product)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" title="Edit Product">
+                        <button 
+                          type="button"
+                          onClick={() => handleEditClick(product)} 
+                          className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" 
+                          title="Edit Product"
+                        >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => removeProduct(product.id)} className="p-2 text-stone-400 hover:text-rose-500 transition-colors" title="Delete Product">
-                          <Trash2 className="w-4 h-4" />
+                        <button 
+                          type="button"
+                          disabled={deletingId === product.id}
+                          onClick={() => handleDeleteProduct(product.id, product.name)} 
+                          className="p-2 text-stone-400 hover:text-rose-500 disabled:opacity-50 transition-colors" 
+                          title="Delete Product"
+                        >
+                          {deletingId === product.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </li>
@@ -845,11 +908,26 @@ export default function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                        <button onClick={() => handleEditLinkClick(link)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" title="Edit Link">
+                        <button 
+                          type="button"
+                          onClick={() => handleEditLinkClick(link)} 
+                          className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" 
+                          title="Edit Link"
+                        >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => removeLink(link.id)} className="p-2 text-stone-400 hover:text-rose-500 transition-colors" title="Delete Link">
-                          <Trash2 className="w-4 h-4" />
+                        <button 
+                          type="button"
+                          disabled={deletingLinkId === link.id}
+                          onClick={() => handleDeleteLink(link.id, link.label)} 
+                          className="p-2 text-stone-400 hover:text-rose-500 disabled:opacity-50 transition-colors" 
+                          title="Delete Link"
+                        >
+                          {deletingLinkId === link.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </li>

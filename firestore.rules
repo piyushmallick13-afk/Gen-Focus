@@ -1,17 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /products/{productId} {
-      allow read, write: if true;
-    }
-    match /nav_links/{linkId} {
-      allow read, write: if true;
-    }
-    match /categories/{categoryId} {
-      allow read, write: if true;
-    }
+    // Global safety catch-all
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+
+    // Health check connection test document
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // System initialization state doc (tracks whether default seed was done)
+    match /system/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.description is string && data.description.size() <= 5000
+        && data.price is string && data.price.size() <= 50
+        && data.category is string && data.category.size() <= 100
+        && data.imageUrl is string && data.imageUrl.size() <= 2097152;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isValidProduct(incoming());
+      allow delete: if true;
+    }
+
+    function isValidNavLink(data) {
+      return data.label is string && data.label.size() > 0 && data.label.size() <= 100
+        && data.url is string && data.url.size() <= 500
+        && data.section is string && (data.section == 'explore' || data.section == 'legal');
+    }
+
+    match /nav_links/{linkId} {
+      allow read: if true;
+      allow create, update: if isValidNavLink(incoming());
+      allow delete: if true;
     }
   }
 }

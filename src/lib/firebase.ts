@@ -1,28 +1,79 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore, getFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-
-const firebaseConfig = {
-  projectId: "gen-lang-client-0953954735",
-  appId: "1:1063857725907:web:4b02083c254cb947cd0f26",
-  apiKey: "AIzaSyDdR7hU-XCrMDqwtj-rUntbszLpQIjPMk0",
-  authDomain: "gen-lang-client-0953954735.firebaseapp.com",
-  storageBucket: "gen-lang-client-0953954735.firebasestorage.app",
-  messagingSenderId: "1063857725907"
-};
+import firebaseConfig from '../../firebase-applet-config.json';
 
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const DATABASE_ID = "ai-studio-genfocus-4421d6d5-bcda-4688-86d7-92ea1e9faec9";
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      ignoreUndefinedProperties: true
+    }, firebaseConfig.firestoreDatabaseId);
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+})();
 
-let dbInstance;
-try {
-  dbInstance = initializeFirestore(app, {
-    experimentalForceLongPolling: true
-  }, DATABASE_ID);
-} catch {
-  dbInstance = getFirestore(app, DATABASE_ID);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+
+// Connection test on boot as required by Firebase integration
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Please check your Firebase configuration or network connection.");
+    }
+  }
+}
+testConnection();
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
 }
 
-export const db = dbInstance;
-export const storage = getStorage(app);
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
