@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A curated product available for affiliate viewing or direct purchase.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "price": { "type": "string", "maxLength": 50 },
+        "mrp": { "type": "string", "maxLength": 50 },
+        "discount": { "type": "string", "maxLength": 20 },
+        "imageUrl": { "type": "string", "maxLength": 500000 },
+        "affiliateUrl": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "maxLength": 100 },
+        "subCategory": { "type": "string", "maxLength": 100 },
+        "imageBgColor": { "type": "string", "maxLength": 50 },
+        "rating": { "type": "number" },
+        "type": { "type": "string", "enum": ["affiliate", "buy"] },
+        "hasSizes": { "type": "boolean" },
+        "additionalImages": { "type": "array" }
+      },
+      "required": ["id", "name", "description", "price", "imageUrl", "category"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A department category with subcategory groups and tags.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "tagline": { "type": "string", "maxLength": 300 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "image": { "type": "string", "maxLength": 500000 },
+        "coverImage": { "type": "string", "maxLength": 500000 },
+        "order": { "type": "number" },
+        "popularTags": { "type": "array" },
+        "groups": { "type": "array" }
+      },
+      "required": ["id", "name"]
+    },
+    "NavLink": {
+      "title": "NavLink",
+      "description": "Navigation links for header and footer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "label": { "type": "string", "maxLength": 100 },
+        "url": { "type": "string", "maxLength": 500 },
+        "section": { "type": "string", "enum": ["explore", "legal"] }
+      },
+      "required": ["id", "label", "url", "section"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An e-commerce purchase order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "customer": { "type": "object" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "items", "totalAmount", "customer"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all products in catalog."
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of department categories."
+    },
+    "/nav_links/{linkId}": {
+      "schema": "NavLink",
+      "description": "Collection of navigation links."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Placed customer orders."
+    }
+  }
+}

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { CategoryDetail } from '../types';
 import { categoryDetails as defaultCategoryDetails } from '../data';
-
-const STORAGE_KEY = 'genfocus_categories_v3';
+import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
 const initialCategories: CategoryDetail[] = Object.entries(defaultCategoryDetails).map(([name, cat], idx) => ({
   id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -10,34 +11,73 @@ const initialCategories: CategoryDetail[] = Object.entries(defaultCategoryDetail
   ...cat
 }));
 
-function loadInitialCategories(): CategoryDetail[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load categories from localStorage:', err);
-  }
-  return initialCategories;
-}
+const cleanCategory = (cat: any): Record<string, any> => {
+  return {
+    id: String(cat.id || ''),
+    name: String(cat.name || ''),
+    tagline: String(cat.tagline || ''),
+    description: String(cat.description || ''),
+    image: String(cat.image || ''),
+    coverImage: String(cat.coverImage || cat.image || ''),
+    order: typeof cat.order === 'number' ? cat.order : 0,
+    popularTags: Array.isArray(cat.popularTags) ? cat.popularTags.filter((t: any) => typeof t === 'string' && t.trim() !== '') : [],
+    groups: Array.isArray(cat.groups)
+      ? cat.groups.map((g: any) => ({
+          title: String(g?.title || ''),
+          items: Array.isArray(g?.items) ? g.items.filter((i: any) => typeof i === 'string' && i.trim() !== '') : []
+        }))
+      : []
+  };
+};
 
 export function useCategories() {
-  const [categories, setCategories] = useState<CategoryDetail[]>(loadInitialCategories);
-  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<CategoryDetail[]>(initialCategories);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-    } catch (err) {
-      console.error('Failed to save categories to localStorage:', err);
-    }
-  }, [categories]);
+    const catRef = collection(db, 'categories');
 
-  const addCategory = (newCat: Omit<CategoryDetail, 'id'> & { id?: string }) => {
+    const unsubscribe = onSnapshot(catRef, async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed default categories into Firestore
+        try {
+          const batch = writeBatch(db);
+          initialCategories.forEach((cat) => {
+            const docId = cat.id || cat.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            const docRef = doc(catRef, docId);
+            batch.set(docRef, cleanCategory({ ...cat, id: docId }));
+          });
+          await batch.commit();
+        } catch (e) {
+          console.error("Failed to seed default categories to Firestore:", e);
+        }
+        setCategories(initialCategories);
+        setLoading(false);
+      } else {
+        const fetched = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data()
+        } as CategoryDetail));
+
+        fetched.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+        setCategories(fetched);
+        setLoading(false);
+      }
+    }, (error) => {
+      console.warn("Firestore categories snapshot error, using local defaults:", error);
+      setCategories(initialCategories);
+      setLoading(false);
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'categories');
+      } catch {
+        // Logged
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addCategory = async (newCat: Omit<CategoryDetail, 'id'> & { id?: string }) => {
     const id = newCat.id || newCat.name.toLowerCase().replace(/[^a-z0-9]/g, '-') || Date.now().toString();
     const catToSave: CategoryDetail = {
       ...newCat,
@@ -46,23 +86,62 @@ export function useCategories() {
       groups: newCat.groups || [],
       popularTags: newCat.popularTags || []
     };
+
     setCategories(prev => [...prev.filter(c => c.id !== id), catToSave]);
-  };
 
-  const editCategory = (id: string, updated: Partial<CategoryDetail>) => {
-    setCategories(prev => prev.map(c => (c.id === id ? { ...c, ...updated, id } : c)));
-  };
-
-  const removeCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-  };
-
-  const resetToDefaults = () => {
-    setCategories(initialCategories);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialCategories));
+      await setDoc(doc(db, 'categories', id), cleanCategory(catToSave));
     } catch (err) {
-      console.error('Failed to reset categories in localStorage:', err);
+      handleFirestoreError(err, OperationType.WRITE, `categories/${id}`);
+    }
+  };
+
+  const editCategory = async (id: string, updated: Partial<CategoryDetail>) => {
+    const existing = categories.find(c => c.id === id);
+    if (!existing) return;
+
+    const merged: CategoryDetail = {
+      ...existing,
+      ...updated,
+      id
+    };
+
+    setCategories(prev => prev.map(c => c.id === id ? merged : c));
+
+    try {
+      await setDoc(doc(db, 'categories', id), cleanCategory(merged));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `categories/${id}`);
+    }
+  };
+
+  const removeCategory = async (id: string) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+    }
+  };
+
+  const resetToDefaults = async () => {
+    try {
+      const batch = writeBatch(db);
+      categories.forEach(c => {
+        if (c.id) {
+          batch.delete(doc(db, 'categories', c.id));
+        }
+      });
+      initialCategories.forEach(c => {
+        const docId = c.id || c.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        batch.set(doc(db, 'categories', docId), cleanCategory({ ...c, id: docId }));
+      });
+      await batch.commit();
+      setCategories(initialCategories);
+    } catch (err) {
+      console.error("Error resetting categories:", err);
+      setCategories(initialCategories);
     }
   };
 

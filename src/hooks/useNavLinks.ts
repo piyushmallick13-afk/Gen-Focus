@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from '../types';
-
-const STORAGE_KEY = 'genfocus_nav_links';
+import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
 const defaultLinks: NavLink[] = [
   { id: '1', label: 'Workspace', url: '/', section: 'explore' },
@@ -12,52 +13,93 @@ const defaultLinks: NavLink[] = [
   { id: '6', label: 'Terms of Service', url: '#', section: 'legal' },
 ];
 
-function loadInitialLinks(): NavLink[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load nav links from localStorage:', err);
-  }
-  return defaultLinks;
-}
-
 export function useNavLinks() {
-  const [links, setLinks] = useState<NavLink[]>(loadInitialLinks);
+  const [links, setLinks] = useState<NavLink[]>(defaultLinks);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const linksRef = collection(db, 'nav_links');
+    
+    const unsubscribe = onSnapshot(linksRef, async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed default links to Firestore if empty
+        try {
+          const batch = writeBatch(db);
+          defaultLinks.forEach(link => {
+            const docRef = doc(linksRef, link.id);
+            batch.set(docRef, link);
+          });
+          await batch.commit();
+        } catch (e) {
+          console.warn("Could not seed default links to Firestore:", e);
+        }
+        setLinks(defaultLinks);
+        setLoading(false);
+      } else {
+        const fetchedLinks = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as NavLink));
+        
+        fetchedLinks.sort((a, b) => Number(a.id) - Number(b.id));
+        setLinks(fetchedLinks);
+        setLoading(false);
+      }
+    }, (error) => {
+      console.warn("Firestore nav_links snapshot error, using default links:", error);
+      setLinks(defaultLinks);
+      setLoading(false);
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'nav_links');
+      } catch {
+        // Logged
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addLink = async (link: NavLink) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(links));
-    } catch (err) {
-      console.error('Failed to save nav links to localStorage:', err);
+      await setDoc(doc(db, 'nav_links', link.id), link);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `nav_links/${link.id}`);
     }
-  }, [links]);
-
-  const addLink = (link: NavLink) => {
-    setLinks(prev => [...prev, link]);
   };
 
-  const removeLink = (id: string) => {
-    setLinks(prev => prev.filter(l => l.id !== id));
-  };
-
-  const editLink = (updatedLink: NavLink) => {
-    setLinks(prev => prev.map(l => l.id === updatedLink.id ? updatedLink : l));
-  };
-
-  const resetToDefaults = () => {
-    setLinks(defaultLinks);
+  const removeLink = async (id: string) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultLinks));
-    } catch (err) {
-      console.error('Failed to reset nav links in localStorage:', err);
+      await deleteDoc(doc(db, 'nav_links', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `nav_links/${id}`);
     }
   };
 
-  return { links, addLink, removeLink, editLink, resetToDefaults };
+  const editLink = async (updatedLink: NavLink) => {
+    try {
+      await setDoc(doc(db, 'nav_links', updatedLink.id), updatedLink);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `nav_links/${updatedLink.id}`);
+    }
+  };
+
+  const resetToDefaults = async () => {
+    try {
+      const batch = writeBatch(db);
+      links.forEach(l => {
+        batch.delete(doc(db, 'nav_links', l.id));
+      });
+      defaultLinks.forEach(link => {
+        const docRef = doc(db, 'nav_links', link.id);
+        batch.set(docRef, link);
+      });
+      await batch.commit();
+      setLinks(defaultLinks);
+    } catch (error) {
+      console.error("Error resetting links:", error);
+      setLinks(defaultLinks);
+    }
+  };
+
+  return { links, loading, addLink, removeLink, editLink, resetToDefaults };
 }
