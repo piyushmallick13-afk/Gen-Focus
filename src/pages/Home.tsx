@@ -60,7 +60,7 @@ export default function Home() {
     setHeroIndex((prev) => (prev - 1 + heroProducts.length) % heroProducts.length);
   };
   
-  const categories = ['All', ...allCategories];
+  const categories = ['All', ...(Array.isArray(allCategories) ? allCategories : [])];
   
   let filteredProducts = activeCategory === 'All' 
     ? products 

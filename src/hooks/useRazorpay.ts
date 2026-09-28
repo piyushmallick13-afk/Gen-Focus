@@ -16,7 +16,7 @@ export function useRazorpay() {
       setIsLoaded(true);
     };
     script.onerror = () => {
-      console.error('Razorpay SDK failed to load');
+      console.warn('Razorpay SDK failed to load');
     };
     document.body.appendChild(script);
   }, []);

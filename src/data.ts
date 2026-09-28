@@ -1,111 +1,121 @@
 import { Product, CategoryDetail } from './types';
 
 export const allCategories = [
-  "Smartphones & Accessories",
-  "Computers & Laptops",
-  "Audio & Headphones",
-  "Wearable Technology",
   "Men's Fashion",
   "Women's Fashion",
-  "Kid's Fashion",
-  "Boy's Fashion",
-  "Girl's Fashion",
-  "Footwear",
-  "Accessories",
-  "Activewear & Apparel",
-  "Fitness & Training",
-  "Outdoor Sports",
-  "Team Sports",
-  "Furniture",
-  "Home Decor",
-  "Kitchen & Dining",
-  "Bed & Bath",
-  "Supplements & Vitamins",
-  "Personal Care",
-  "Medical Supplies",
-  "Gaming",
-  "Toys & Collectibles",
-  "Books & Media",
-  "Smart Toys & Drones",
-  "Home & Kitchen",
-  "Workspace",
-  "Living"
+  "Accessories"
 ];
 
-export const categoryDetails: CategoryDetail[] = [
-  {
-    id: '1',
-    name: 'Workspace',
-    description: 'Elevate your daily focus with minimalist, ergonomic desk essentials.',
-    imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?q=80&w=800&auto=format&fit=crop'
+export const categoryDetails: Record<string, CategoryDetail> = {
+  "Men's Fashion": {
+    name: "Men's Fashion",
+    tagline: 'Timeless tailoring & modern relaxed essentials',
+    description: 'Minimalist menswear tailored from breathable Belgian linen, Italian virgin wool, and structured organic cottons designed for enduring style.',
+    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=800&auto=format&fit=crop',
+    popularTags: ['Linen Shirts', 'Overshirts', 'Trench Coats', 'Tailored Trousers', 'Knitwear'],
+    groups: [
+      {
+        title: 'Apparel',
+        items: ['Linen Shirts', 'Overshirts', 'Trench Coats', 'Tailored Trousers', 'Knitwear']
+      },
+      {
+        title: 'Curated Collections',
+        items: ['Warm Weather Staples', 'Modern Workwear', 'Everyday Minimal', 'Outerwear Essentials']
+      },
+      {
+        title: 'Premium Materials',
+        items: ['Belgian Linen', 'Italian Wool', 'Combed Cotton', 'Merino Blends']
+      }
+    ]
   },
-  {
-    id: '2',
-    name: 'Living',
-    description: 'Calming, aesthetic accents designed for comfortable and intentional living spaces.',
-    imageUrl: 'https://images.unsplash.com/photo-1580870059815-5633e72eb178?q=80&w=800&auto=format&fit=crop'
+  "Women's Fashion": {
+    name: "Women's Fashion",
+    tagline: 'Fluid silhouettes & understated elegance',
+    description: 'Thoughtfully designed wardrobe staples cut from silk blends, Mongolian cashmere, and structured linens offering seamless versatility from day to night.',
+    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=800&auto=format&fit=crop',
+    popularTags: ['Wrap Dresses', 'Cashmere Knitwear', 'Silk Tops', 'Pleated Skirts', 'Blazers'],
+    groups: [
+      {
+        title: 'Apparel',
+        items: ['Wrap Dresses', 'Cashmere Knitwear', 'Silk Tops', 'Tailored Pants', 'Outerwear']
+      },
+      {
+        title: 'Occasions & Themes',
+        items: ['Capsule Wardrobe', 'Day to Evening', 'Weekend Getaway', 'Elevated Casual']
+      },
+      {
+        title: 'Finest Fabrics',
+        items: ['Silk Crepe', 'Pure Cashmere', 'Structured Cotton', 'Ribbed Weaves']
+      }
+    ]
   },
-  {
-    id: '3',
-    name: 'Home & Kitchen',
-    description: 'Thoughtfully designed kitchenware and tools for mindful daily rituals.',
-    imageUrl: 'https://images.unsplash.com/photo-1544004481-7998634d008d?q=80&w=800&auto=format&fit=crop'
-  },
-  {
-    id: '4',
+  "Accessories": {
     name: 'Accessories',
-    description: 'Everyday leather goods, organizational pouches, and premium personal items.',
-    imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=800&auto=format&fit=crop'
-  },
-  ...allCategories
-    .filter(cat => !['Workspace', 'Living', 'Home & Kitchen', 'Accessories'].includes(cat))
-    .map((name, index) => ({
-      id: String(index + 5),
-      name,
-      description: `Curated ${name} essentials designed for everyday elegance.`,
-      imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?q=80&w=800&auto=format&fit=crop'
-    }))
-];
+    tagline: 'Precision horology & handcrafted leather goods',
+    description: 'Artisanal timepieces, full-grain leather notebooks, wallets, and minimalist lifestyle companions built to endure a lifetime of daily use.',
+    image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=800&auto=format&fit=crop',
+    popularTags: ['Leather Watches', 'Notebook Folios', 'Cardholders', 'Bags & Folios', 'Minimal Wallets'],
+    groups: [
+      {
+        title: 'Watches & Timepieces',
+        items: ['Leather Watches', 'Minimalist Chronographs', 'Automatic Watches', 'Watch Straps']
+      },
+      {
+        title: 'Leather Goods',
+        items: ['Notebook Folios', 'Cardholders', 'Classic Wallets', 'Passport Sleeves']
+      },
+      {
+        title: 'Everyday Objects',
+        items: ['Eyewear & Sunglasses', 'Brass Accents', 'Key Organizers', 'Desk Accessories']
+      }
+    ]
+  }
+};
 
 export const products: Product[] = [
   {
     id: '1',
-    name: 'Ceramic Pour-Over Kettle',
-    description: 'Matte finish with a precision spout for the perfect morning ritual.',
-    price: '₹5,499',
-    mrp: '₹7,999',
-    discount: '31%',
-    imageUrl: 'https://images.unsplash.com/photo-1544004481-7998634d008d?q=80&w=800&auto=format&fit=crop',
+    name: 'Tailored Linen Overshirt',
+    description: 'Minimalist relaxed silhouette cut from premium breathable Belgian linen.',
+    price: '₹4,499',
+    mrp: '₹6,999',
+    discount: '35%',
+    imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://example.com/affiliate/1',
-    category: 'Home & Kitchen',
+    category: "Men's Fashion",
     imageBgColor: 'bg-[#F4F1EE]',
-    rating: 4.8
+    rating: 4.8,
+    type: 'buy',
+    hasSizes: true
   },
   {
     id: '2',
-    name: 'Minimalist Desk Lamp',
-    description: 'Soft ambient lighting with adjustable brightness for deep focus.',
-    price: '₹9,999',
-    mrp: '₹14,999',
+    name: 'Silk Blend Midi Wrap Dress',
+    description: 'Effortless drape and understated elegance for day-to-night versatility.',
+    price: '₹5,999',
+    mrp: '₹8,999',
     discount: '33%',
-    imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://example.com/affiliate/2',
-    category: 'Workspace',
+    category: "Women's Fashion",
     imageBgColor: 'bg-[#EFF2F0]',
-    rating: 4.5
+    rating: 4.9,
+    type: 'buy',
+    hasSizes: true
   },
   {
     id: '3',
-    name: 'Linen Throw Blanket',
-    description: 'Breathable, ultra-soft organic linen for year-round comfort.',
-    price: '₹6,999',
-    mrp: '₹8,999',
-    discount: '22%',
-    imageUrl: 'https://images.unsplash.com/photo-1580870059815-5633e72eb178?q=80&w=800&auto=format&fit=crop',
+    name: 'Handcrafted Minimalist Leather Watch',
+    description: 'Precision Japanese movement encased in brushed surgical-grade stainless steel with Italian leather strap.',
+    price: '₹8,499',
+    mrp: '₹11,999',
+    discount: '29%',
+    imageUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://example.com/affiliate/3',
-    category: 'Living',
+    category: 'Accessories',
     imageBgColor: 'bg-[#F3EFEA]',
-    rating: 5
+    rating: 5,
+    type: 'buy'
   },
   {
     id: '4',
@@ -118,32 +128,37 @@ export const products: Product[] = [
     affiliateUrl: 'https://example.com/affiliate/4',
     category: 'Accessories',
     imageBgColor: 'bg-[#EAECEF]',
-    rating: 4.9
+    rating: 4.9,
+    type: 'affiliate'
   },
   {
     id: '5',
-    name: 'Acoustic Desk Partition',
-    description: 'Reduce noise and visual distractions in open spaces effortlessly.',
-    price: '₹15,999',
-    mrp: '₹19,999',
-    discount: '20%',
-    imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?q=80&w=800&auto=format&fit=crop',
+    name: 'Structured Wool Trench Coat',
+    description: 'Double-breasted timeless outerwear crafted from fine Italian virgin wool blend.',
+    price: '₹12,999',
+    mrp: '₹17,999',
+    discount: '28%',
+    imageUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://example.com/affiliate/5',
-    category: 'Workspace',
+    category: "Men's Fashion",
     imageBgColor: 'bg-[#F0EBE6]',
-    rating: 4.7
+    rating: 4.7,
+    type: 'buy',
+    hasSizes: true
   },
   {
     id: '6',
-    name: 'Stoneware Mug Set',
-    description: 'Set of two handmade mugs, glazed in a soft, earthy tone.',
-    price: '₹2,999',
-    mrp: '₹3,999',
-    discount: '25%',
-    imageUrl: 'https://images.unsplash.com/photo-1610738038706-c87d4637da8c?q=80&w=800&auto=format&fit=crop',
+    name: 'Ribbed Cashmere Knit Sweater',
+    description: 'Plush Mongolian cashmere knit with an easy mock-neck silhouette.',
+    price: '₹6,499',
+    mrp: '₹9,499',
+    discount: '31%',
+    imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://example.com/affiliate/6',
-    category: 'Home & Kitchen',
+    category: "Women's Fashion",
     imageBgColor: 'bg-[#EBF0EF]',
-    rating: 4.6
+    rating: 4.8,
+    type: 'buy',
+    hasSizes: true
   }
 ];

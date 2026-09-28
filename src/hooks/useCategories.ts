@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CategoryDetail } from '../types';
-import { categoryDetails as defaultCategoryDetails } from '../data';
+import { allCategories, categoryDetails as defaultCategoryDetails } from '../data';
 import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -47,6 +47,42 @@ export function useCategories() {
     return () => unsubscribe();
   }, []);
 
+  const categoryNames = useMemo(() => {
+    const fromCategories = Array.isArray(categories) && categories.length > 0
+      ? categories.map(c => c.name).filter(Boolean)
+      : [];
+    const combined = Array.from(new Set([...fromCategories, ...allCategories]));
+    return combined.length > 0 ? combined : allCategories;
+  }, [categories]);
+
+  const categoryDetailsMap = useMemo(() => {
+    const map: Record<string, CategoryDetail> = {};
+    allCategories.forEach((name, idx) => {
+      map[name] = {
+        id: `default-${idx}`,
+        name,
+        description: `Explore curated ${name} essentials designed for everyday living.`,
+        imageUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?q=80&w=800&auto=format&fit=crop'
+      };
+    });
+    defaultCategoryDetails.forEach(cat => {
+      if (cat?.name) {
+        map[cat.name] = cat;
+      }
+    });
+    if (Array.isArray(categories)) {
+      categories.forEach(cat => {
+        if (cat?.name) {
+          map[cat.name] = {
+            ...map[cat.name],
+            ...cat
+          };
+        }
+      });
+    }
+    return map;
+  }, [categories]);
+
   const addCategory = async (category: CategoryDetail) => {
     try {
       await setDoc(doc(db, 'categories', category.id), category);
@@ -71,5 +107,13 @@ export function useCategories() {
     }
   };
 
-  return { categories, loading, addCategory, removeCategory, editCategory };
+  return { 
+    categories, 
+    categoryNames, 
+    categoryDetailsMap, 
+    loading, 
+    addCategory, 
+    removeCategory, 
+    editCategory 
+  };
 }

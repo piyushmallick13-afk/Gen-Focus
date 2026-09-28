@@ -10,7 +10,9 @@ interface CategorySectionProps {
 }
 
 export default function CategorySection({ variant = 'page', onSelectCategory }: CategorySectionProps) {
-  const { categoryNames: allCategories, categoryDetailsMap: categoryDetails } = useCategories();
+  const { categoryNames = [], categoryDetailsMap = {} } = useCategories();
+  const allCategories = Array.isArray(categoryNames) ? categoryNames : [];
+  const categoryDetails = categoryDetailsMap || {};
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || 'All';
   const activeSubCategory = searchParams.get('sub') || '';

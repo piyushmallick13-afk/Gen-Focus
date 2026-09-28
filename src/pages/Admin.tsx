@@ -5,8 +5,6 @@ import { useProducts } from '../hooks/useProducts';
 import { useNavLinks } from '../hooks/useNavLinks';
 import { Plus, Trash2, Lock, Edit2, Link as LinkIcon, Upload, Loader2, X } from 'lucide-react';
 import { NavLink } from '../types';
-import { storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 
 export default function Admin() {

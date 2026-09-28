@@ -1,55 +1,48 @@
 {
-  "collections": [
-    {
-      "name": "products",
-      "description": "Products available in the store",
-      "fields": [
-        { "name": "name", "type": "string", "description": "Product name" },
-        { "name": "description", "type": "string", "description": "Product description" },
-        { "name": "price", "type": "string", "description": "Product price" },
-        { "name": "mrp", "type": "string", "description": "Maximum retail price", "required": false },
-        { "name": "imageUrl", "type": "string", "description": "Product image URL" },
-        { "name": "category", "type": "string", "description": "Product category" },
-        { "name": "rating", "type": "number", "description": "Product rating", "required": false },
-        { "name": "imageBgColor", "type": "string", "description": "Background color class", "required": false }
-      ],
-      "access": {
-        "create": "public",
-        "read": "public",
-        "update": "public",
-        "delete": "public"
-      }
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Products available in the curated store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "Product description" },
+        "price": { "type": "string", "description": "Formatted price string" },
+        "mrp": { "type": "string", "description": "Maximum retail price" },
+        "discount": { "type": "string", "description": "Discount percentage text" },
+        "imageUrl": { "type": "string", "description": "Main image URL or data URI" },
+        "category": { "type": "string", "description": "Product category" },
+        "rating": { "type": "number", "description": "Average review rating" },
+        "imageBgColor": { "type": "string", "description": "Background accent color class" },
+        "affiliateUrl": { "type": "string", "description": "Affiliate link URL" },
+        "type": { "type": "string", "enum": ["affiliate", "buy"], "description": "Product type" },
+        "hasSizes": { "type": "boolean", "description": "Whether size selection is available" },
+        "additionalImages": { "type": "array", "description": "Additional gallery images" }
+      },
+      "required": ["id", "name", "price", "imageUrl", "category"]
     },
-    {
-      "name": "categories",
-      "description": "Categories available in the store",
-      "fields": [
-        { "name": "name", "type": "string", "description": "Category name" },
-        { "name": "description", "type": "string", "description": "Category description", "required": false },
-        { "name": "imageUrl", "type": "string", "description": "Category banner or preview image", "required": false },
-        { "name": "slug", "type": "string", "description": "Category slug", "required": false }
-      ],
-      "access": {
-        "create": "public",
-        "read": "public",
-        "update": "public",
-        "delete": "public"
-      }
-    },
-    {
-      "name": "nav_links",
-      "description": "Navigation links in header/footer",
-      "fields": [
-        { "name": "label", "type": "string", "description": "Link label" },
-        { "name": "url", "type": "string", "description": "Target URL" },
-        { "name": "section", "type": "string", "description": "explore or legal" }
-      ],
-      "access": {
-        "create": "public",
-        "read": "public",
-        "update": "public",
-        "delete": "public"
-      }
+    "NavLink": {
+      "title": "NavLink",
+      "description": "Navigation link in header or footer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Link ID" },
+        "label": { "type": "string", "description": "Display label" },
+        "url": { "type": "string", "description": "Target URL or path" },
+        "section": { "type": "string", "enum": ["explore", "legal"], "description": "Nav section" }
+      },
+      "required": ["id", "label", "url", "section"]
     }
-  ]
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog of lifestyle products"
+    },
+    "/nav_links/{linkId}": {
+      "schema": "NavLink",
+      "description": "Customizable navigation and footer links"
+    }
+  }
 }

@@ -4,8 +4,8 @@ import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'fire
 import { db } from '../lib/firebase';
 
 const defaultLinks: NavLink[] = [
-  { id: '1', label: "Men's Fashion", url: '/', section: 'explore' },
-  { id: '2', label: "Women's Fashion", url: '/', section: 'explore' },
+  { id: '1', label: 'Workspace', url: '/', section: 'explore' },
+  { id: '2', label: 'Living', url: '/', section: 'explore' },
   { id: '3', label: 'Accessories', url: '/', section: 'explore' },
   { id: '4', label: 'Journal', url: '/', section: 'explore' },
   { id: '5', label: 'Privacy Policy', url: '#', section: 'legal' },
@@ -13,31 +13,43 @@ const defaultLinks: NavLink[] = [
 ];
 
 export function useNavLinks() {
-  const [links, setLinks] = useState<NavLink[]>([]);
+  const [links, setLinks] = useState<NavLink[]>(defaultLinks);
 
   useEffect(() => {
     const linksRef = collection(db, 'nav_links');
     
-    const unsubscribe = onSnapshot(linksRef, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed default links
-        const batch = writeBatch(db);
-        defaultLinks.forEach(link => {
-          const docRef = doc(linksRef, link.id);
-          batch.set(docRef, link);
-        });
-        await batch.commit();
-      } else {
-        const fetchedLinks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as NavLink));
-        
-        // Sort by ID assuming they are added chronologically or ordered
-        fetchedLinks.sort((a, b) => Number(a.id) - Number(b.id));
-        setLinks(fetchedLinks);
+    const unsubscribe = onSnapshot(
+      linksRef,
+      async (snapshot) => {
+        if (snapshot.empty) {
+          // Seed default links
+          try {
+            const batch = writeBatch(db);
+            defaultLinks.forEach(link => {
+              const docRef = doc(linksRef, link.id);
+              batch.set(docRef, link);
+            });
+            await batch.commit();
+          } catch (e) {
+            console.warn("Could not seed default nav links:", e);
+          }
+          setLinks(defaultLinks);
+        } else {
+          const fetchedLinks = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as NavLink));
+          
+          // Sort by ID assuming they are added chronologically or ordered
+          fetchedLinks.sort((a, b) => Number(a.id) - Number(b.id));
+          setLinks(fetchedLinks);
+        }
+      },
+      (error) => {
+        console.warn("Firestore nav links snapshot unavailable, using defaults:", error);
+        setLinks(defaultLinks);
       }
-    });
+    );
 
     return () => unsubscribe();
   }, []);
@@ -46,7 +58,8 @@ export function useNavLinks() {
     try {
       await setDoc(doc(db, 'nav_links', link.id), link);
     } catch (error) {
-      console.error("Error adding link:", error);
+      console.warn("Error adding link:", error);
+      throw error;
     }
   };
 
@@ -54,7 +67,8 @@ export function useNavLinks() {
     try {
       await deleteDoc(doc(db, 'nav_links', id));
     } catch (error) {
-      console.error("Error removing link:", error);
+      console.warn("Error removing link:", error);
+      throw error;
     }
   };
 
@@ -62,7 +76,8 @@ export function useNavLinks() {
     try {
       await setDoc(doc(db, 'nav_links', updatedLink.id), updatedLink);
     } catch (error) {
-      console.error("Error editing link:", error);
+      console.warn("Error editing link:", error);
+      throw error;
     }
   };
 

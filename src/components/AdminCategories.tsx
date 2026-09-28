@@ -32,7 +32,7 @@ export default function AdminCategories({
   onRemoveCategory,
   onResetDefaults
 }: AdminCategoriesProps) {
-  const [editingCategory, setEditingCategory] = useState<CategoryDetail | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Partial<CategoryDetail> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
@@ -199,11 +199,12 @@ export default function AdminCategories({
       return;
     }
 
-    const payload: CategoryDetail = {
+    const payload: Omit<CategoryDetail, 'id'> = {
       name: name.trim(),
       tagline: tagline.trim(),
       description: description.trim(),
       image: image.trim(),
+      imageUrl: image.trim(),
       order: Number(order) || 0,
       popularTags,
       groups

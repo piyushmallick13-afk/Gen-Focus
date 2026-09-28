@@ -32,11 +32,38 @@ export interface CartItem {
   size?: string;
 }
 
+export interface CategoryGroup {
+  title: string;
+  items: string[];
+}
+
 export interface CategoryDetail {
   id: string;
   name: string;
+  tagline?: string;
   description?: string;
+  image?: string;
   imageUrl?: string;
   slug?: string;
   itemCount?: number;
+  order?: number;
+  popularTags?: string[];
+  groups?: CategoryGroup[];
+}
+
+export interface InnerChapter {
+  id?: string;
+  name: string;
+  query?: string;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface CategoryChapter {
+  id: string;
+  name: string;
+  description?: string;
+  order?: number;
+  imageUrl?: string;
+  innerChapters?: (InnerChapter | string)[];
 }

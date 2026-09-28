@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useCart } from '../contexts/CartContext';
 
 export default function Header() {
-  const { categoryNames: allCategories, categoryDetailsMap: categoryDetails } = useCategories();
+  const { categoryNames = [], categoryDetailsMap = {} } = useCategories();
+  const allCategories = Array.isArray(categoryNames) ? categoryNames : [];
+  const categoryDetails = categoryDetailsMap || {};
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(true);
