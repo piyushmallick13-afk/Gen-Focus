@@ -12,7 +12,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-7 h-7 rounded-full bg-stone-900 flex items-center justify-center text-white text-xs font-semibold tracking-wider shadow-xs">
+                g
+              </div>
               <span className="text-2xl font-display font-medium tracking-wide text-stone-800">
                 genfocus
               </span>

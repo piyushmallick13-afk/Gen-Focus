@@ -5,13 +5,31 @@ import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'fire
 import { db } from '../lib/firebase';
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const productsRef = collection(db, 'products');
     
     const unsubscribe = onSnapshot(productsRef, (snapshot) => {
+      if (snapshot.empty) {
+        try {
+          const batch = writeBatch(db);
+          defaultProducts.forEach(product => {
+            const ref = doc(db, 'products', product.id);
+            batch.set(ref, product);
+          });
+          batch.commit().catch(err => {
+            console.warn("Could not auto-seed default products to Firestore:", err);
+          });
+        } catch (err) {
+          console.warn("Could not prepare default products batch:", err);
+        }
+        setProducts(defaultProducts);
+        setLoading(false);
+        return;
+      }
+
       const fetchedProducts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -20,6 +38,10 @@ export function useProducts() {
       // Sort by ID assuming they are added chronologically or ordered
       fetchedProducts.sort((a, b) => Number(a.id) - Number(b.id));
       setProducts(fetchedProducts);
+      setLoading(false);
+    }, (error) => {
+      console.warn("Firestore onSnapshot error, using local products:", error);
+      setProducts(defaultProducts);
       setLoading(false);
     });
 

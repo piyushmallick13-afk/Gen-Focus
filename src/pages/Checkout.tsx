@@ -137,7 +137,12 @@ export default function Checkout() {
                   {cart.map(item => (
                     <div key={item.id} className="flex gap-4 pb-4 border-b border-stone-100 last:border-0 last:pb-0">
                       <div className="w-16 h-16 rounded-lg bg-stone-100 overflow-hidden shrink-0">
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover mix-blend-multiply" />
+                        <img 
+                          src={item.imageUrl || 'https://placehold.co/100x100/eeeeee/999999?text=Product'} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover mix-blend-multiply"
+                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Product' }}
+                        />
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm font-medium text-stone-900 line-clamp-1">{item.name}</h3>

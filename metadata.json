@@ -1,6 +1,6 @@
 {
   "name": "Genfocus",
-  "description": "A curated showcase of premium, minimalist lifestyle products.",
+  "description": "Curated essentials for intentional living.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

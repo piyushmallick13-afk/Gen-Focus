@@ -56,7 +56,12 @@ export default function Cart() {
                   {cart.map(item => (
                     <div key={item.id} className="flex gap-4">
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-stone-100 shrink-0">
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover mix-blend-multiply" />
+                        <img 
+                          src={item.imageUrl || 'https://placehold.co/100x100/eeeeee/999999?text=Product'} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover mix-blend-multiply" 
+                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Product' }}
+                        />
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                         <div>

@@ -1,0 +1,29 @@
+# GENFOCUS ORIGINAL MINIMALIST THEME BACKUP PROMPT
+# Save this prompt and paste it to the AI assistant whenever you want to revert to the original theme.
+
+Revert the store to its original minimalist, modern lifestyle design:
+
+1. Visual Theme & Colors:
+   - Remove all festive Durga Puja / Bengali cultural elements, Bengali text, red/gold festive colors, alpona motifs, and pujo tags.
+   - Restore the original aesthetic: clean warm off-white canvas (bg-[#FAFAFA] / bg-white), neutral stone palette (text-stone-900, text-stone-500, border-stone-200), and minimalist typography.
+   - Restore the original brand tagline: "Curated essentials for intentional living."
+
+2. Header & Navigation:
+   - Use the original simple circular genfocus logo.
+   - Keep standard category links: All, Work & Focus, Sound & Audio, Writing & Carry, Lighting & Ambience, Apparel & Comfort.
+   - Clean stone-style search bar, cart toggle, and admin link without festive pills or audio players.
+
+3. Hero Section:
+   - Minimalist headline: "Curated essentials for intentional living."
+   - Subtext: "Discover a selection of premium, minimalist products designed to bring focus, calm, and elegance to your everyday environment."
+   - Clean product showcase carousel with soft drop shadows and stone-toned pill buttons ("Explore Collection").
+   - Continuous text marquee featuring lifestyle and desk product categories.
+
+4. Product Grid & Cards:
+   - Clean rounded card borders (rounded-2xl border-stone-100), smooth hover shadows, neutral stone price displays, and standard "Best Deal" or "Sale" badges.
+   - Remove the 5 Pujo days lookbook and festive tabs.
+
+5. Cart, Checkout & Footer:
+   - Minimalist dark stone buttons (bg-stone-900 text-white hover:bg-stone-800).
+   - Keep full Razorpay checkout functionality and cart operations intact, styled with clean monochromatic lines and subtle borders.
+   - Clean footer with simple copyright: "© genfocus. All rights reserved." and social links.

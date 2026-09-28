@@ -8,6 +8,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
+  if (!product) return null;
+
   if (viewMode === 'list') {
     return (
       <div className="group flex flex-col sm:flex-row gap-6 bg-white p-4 rounded-2xl border border-stone-100 hover:shadow-md transition-shadow">
@@ -18,7 +20,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
             </div>
           )}
           <img 
-            src={product.imageUrl} 
+            src={product.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available'} 
             alt={product.name}
             className="h-full w-full object-cover object-center mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"
@@ -83,10 +85,11 @@ export default function ProductCard({ product, viewMode = 'grid' }: ProductCardP
           </div>
         )}
         <img 
-          src={product.imageUrl} 
+          src={product.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available'} 
           alt={product.name}
           className="h-full w-full object-cover object-center mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
           referrerPolicy="no-referrer"
+          onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
         />
         
         {/* Subtle hover overlay to hint at link */}

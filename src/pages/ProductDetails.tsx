@@ -17,7 +17,7 @@ declare global {
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const isRazorpayLoaded = useRazorpay();
   
   const product = products.find(p => p.id === id);
@@ -30,13 +30,19 @@ export default function ProductDetails() {
   const { addToCart } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  const allImages = product ? [product.imageUrl, ...(product.additionalImages || [])] : [];
 
-  const allImages = [product.imageUrl, ...(product.additionalImages || [])];
-
-  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  const nextImage = () => {
+    if (allImages.length === 0) return;
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  };
+  const prevImage = () => {
+    if (allImages.length === 0) return;
+    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
 
   const handleAddToCart = () => {
+    if (!product) return;
     if (product.hasSizes && !selectedSize) {
       alert("Please select a size first.");
       return;
@@ -52,17 +58,18 @@ export default function ProductDetails() {
   };
 
   const handleBuyClick = () => {
-    if (product?.hasSizes && !selectedSize) {
+    if (!product) return;
+    if (product.hasSizes && !selectedSize) {
       alert("Please select a size first.");
       return;
     }
     
     // Add to cart and immediately proceed to checkout
     addToCart({
-      productId: product!.id,
-      name: product!.name,
-      price: product!.price,
-      imageUrl: product!.imageUrl,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
       quantity: 1,
       size: selectedSize || undefined
     });
@@ -70,6 +77,20 @@ export default function ProductDetails() {
     navigate('/checkout');
   };
 
+  if (loading && !product) {
+    return (
+      <div className="min-h-screen flex flex-col font-sans bg-[#FAFAFA]">
+        <Header />
+        <main className="flex-grow flex items-center justify-center py-24">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-stone-800 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-stone-500 font-medium">Loading product details...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -111,7 +132,7 @@ export default function ProductDetails() {
             <AnimatePresence mode="wait">
               <motion.img 
                 key={currentImageIndex}
-                src={allImages[currentImageIndex]} 
+                src={allImages[currentImageIndex] || product.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available'} 
                 alt={`${product.name} - view ${currentImageIndex + 1}`}
                 className="w-full h-full object-contain mix-blend-multiply drop-shadow-xl"
                 referrerPolicy="no-referrer"

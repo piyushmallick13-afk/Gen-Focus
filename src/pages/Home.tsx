@@ -34,6 +34,8 @@ export default function Home() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDirection, setHeroDirection] = useState(1);
   const heroProducts = products.slice(0, 4); // Take top 4 for hero
+  const activeHeroIndex = heroProducts.length > 0 ? (heroIndex % heroProducts.length + heroProducts.length) % heroProducts.length : 0;
+  const currentHero = heroProducts[activeHeroIndex];
 
   useEffect(() => {
     if (heroProducts.length <= 1) return;
@@ -47,11 +49,13 @@ export default function Home() {
   }, [heroProducts.length]);
 
   const handleNextHero = () => {
+    if (heroProducts.length <= 1) return;
     setHeroDirection(1);
     setHeroIndex((prev) => (prev + 1) % heroProducts.length);
   };
   
   const handlePrevHero = () => {
+    if (heroProducts.length <= 1) return;
     setHeroDirection(-1);
     setHeroIndex((prev) => (prev - 1 + heroProducts.length) % heroProducts.length);
   };
@@ -126,11 +130,11 @@ export default function Home() {
                 <div className="aspect-[4/5] md:aspect-[3/4] rounded-3xl overflow-hidden bg-stone-100 shadow-2xl shadow-stone-200/50 relative border border-white/50 group">
                   <div className="absolute inset-0 bg-gradient-to-tr from-stone-200/40 to-transparent z-10 pointer-events-none mix-blend-overlay" />
                   
-                  {heroProducts.length > 0 ? (
+                  {heroProducts.length > 0 && currentHero ? (
                   <>
                   <AnimatePresence initial={false} custom={heroDirection}>
                     <motion.div
-                      key={heroIndex}
+                      key={activeHeroIndex}
                       custom={heroDirection}
                       variants={{
                         enter: (dir: number) => ({
@@ -158,8 +162,8 @@ export default function Home() {
                       className="absolute inset-0"
                     >
                       <img 
-                        src={heroProducts[heroIndex].imageUrl} 
-                        alt={heroProducts[heroIndex].name}
+                        src={currentHero.imageUrl || 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available'} 
+                        alt={currentHero.name}
                         className="w-full h-full object-cover mix-blend-multiply"
                         onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x400/eeeeee/999999?text=Image+Not+Available' }}
                       />
@@ -168,11 +172,11 @@ export default function Home() {
                           <div className="flex justify-between items-start gap-4">
                             <div>
                               <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">Featured Product</p>
-                              <h3 className="text-base font-medium text-stone-900 line-clamp-1">{heroProducts[heroIndex].name}</h3>
+                              <h3 className="text-base font-medium text-stone-900 line-clamp-1">{currentHero.name}</h3>
                             </div>
                             <div className="text-right shrink-0">
-                              <span className="text-sm font-medium text-stone-900 block">{heroProducts[heroIndex].price}</span>
-                              {heroProducts[heroIndex].mrp && <span className="text-xs text-stone-400 line-through">{heroProducts[heroIndex].mrp}</span>}
+                              <span className="text-sm font-medium text-stone-900 block">{currentHero.price}</span>
+                              {currentHero.mrp && <span className="text-xs text-stone-400 line-through">{currentHero.mrp}</span>}
                             </div>
                           </div>
                         </div>

@@ -228,7 +228,7 @@ export default function Admin() {
       price: product.price,
       mrp: product.mrp || '',
       discount: product.discount || '',
-      imageUrl: product.imageUrl,
+      imageUrl: product?.imageUrl || '',
       affiliateUrl: product.affiliateUrl,
       category: product.category,
       imageBgColor: product.imageBgColor || 'bg-stone-100',
@@ -497,7 +497,7 @@ export default function Admin() {
                   {products.map(product => (
                     <li key={product.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-stone-50 transition-colors">
                       <div className={`w-16 h-16 rounded-lg ${product.imageBgColor || 'bg-stone-100'} flex-shrink-0 overflow-hidden relative`}>
-                        <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
+                        <img src={product.imageUrl || 'https://placehold.co/100x100/eeeeee/999999?text=Error'} alt={product.name} className="absolute inset-0 w-full h-full object-cover mix-blend-multiply" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100/eeeeee/999999?text=Error' }} />
                       </div>
                       <div className="flex-grow min-w-0">
                         <h3 className="text-sm font-medium text-stone-800 truncate">{product.name}</h3>
