@@ -65,6 +65,7 @@ export function useNavLinks() {
 
   const removeLink = async (id: string) => {
     try {
+      setLinks(prev => prev.filter(l => l.id !== id));
       await deleteDoc(doc(db, 'nav_links', id));
     } catch (error) {
       console.warn("Error removing link:", error);

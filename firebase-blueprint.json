@@ -46,6 +46,15 @@
         "image": { "type": "string", "description": "Featured image URL" }
       },
       "required": ["id", "name"]
+    },
+    "AppMetadata": {
+      "title": "AppMetadata",
+      "description": "Application state metadata and initialization markers",
+      "type": "object",
+      "properties": {
+        "initialized": { "type": "boolean" },
+        "timestamp": { "type": "number" }
+      }
     }
   },
   "firestore": {
@@ -60,6 +69,10 @@
     "/categories/{categoryId}": {
       "schema": "CategoryDetail",
       "description": "Department navigation categories"
+    },
+    "/app_metadata/{docId}": {
+      "schema": "AppMetadata",
+      "description": "System state markers"
     }
   }
 }

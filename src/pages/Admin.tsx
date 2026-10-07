@@ -8,7 +8,7 @@ import { NavLink } from '../types';
 import imageCompression from 'browser-image-compression';
 
 export default function Admin() {
-  const { products, addProduct, removeProduct, editProduct } = useProducts();
+  const { products, addProduct, removeProduct, editProduct, restoreDefaults } = useProducts();
   const { links, addLink, removeLink, editLink } = useNavLinks();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
@@ -16,6 +16,11 @@ export default function Admin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'products' | 'links'>('products');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{ id: string; name: string } | null>(null);
+  const [confirmRestoreModal, setConfirmRestoreModal] = useState(false);
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -65,14 +70,14 @@ export default function Admin() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert("Unsupported file format. Please upload a valid image file (e.g., JPG, PNG, WEBP).");
+      setActionFeedback({ type: 'error', message: "Unsupported file format. Please upload a valid image file (e.g., JPG, PNG, WEBP)." });
       return;
     }
 
     // Check size
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
-      alert("Image size exceeds maximum limit of 5MB.");
+      setActionFeedback({ type: 'error', message: "Image size exceeds maximum limit of 5MB." });
       return;
     }
 
@@ -80,6 +85,7 @@ export default function Admin() {
     const localPreviewUrl = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, imageUrl: localPreviewUrl }));
     setIsUploading(true);
+    setActionFeedback(null);
 
     try {
       // Compress the image to a smaller size to store directly in Firestore
@@ -101,7 +107,7 @@ export default function Admin() {
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-      alert(errorMessage);
+      setActionFeedback({ type: 'error', message: errorMessage });
       setFormData(prev => ({ ...prev, imageUrl: '' })); // Revert on failure
     } finally {
       setIsUploading(false);
@@ -113,17 +119,18 @@ export default function Admin() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert("Unsupported file format. Please upload a valid image file.");
+      setActionFeedback({ type: 'error', message: "Unsupported file format. Please upload a valid image file." });
       return;
     }
 
     const sizeInMB = file.size / (1024 * 1024);
     if (sizeInMB > 5) {
-      alert("Image size exceeds maximum limit of 5MB.");
+      setActionFeedback({ type: 'error', message: "Image size exceeds maximum limit of 5MB." });
       return;
     }
 
     setIsUploading(true);
+    setActionFeedback(null);
 
     try {
       const options = {
@@ -142,7 +149,7 @@ export default function Admin() {
       console.error("Upload failed", err);
       let errorMessage = "Failed to upload image. Please try again.";
       if (err instanceof Error) errorMessage = err.message;
-      alert(errorMessage);
+      setActionFeedback({ type: 'error', message: errorMessage });
     } finally {
       setIsUploading(false);
     }
@@ -159,40 +166,102 @@ export default function Admin() {
     setLinkFormData({ ...linkFormData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setActionFeedback(null);
     
-    if (editingId) {
-      editProduct({
-        id: editingId,
-        ...formData,
-        rating: formData.rating ? parseFloat(formData.rating) : undefined
-      });
-      setEditingId(null);
-    } else {
-      const newProduct = {
-        id: Date.now().toString(),
-        ...formData,
-        rating: formData.rating ? parseFloat(formData.rating) : undefined
+    try {
+      const sanitizedProduct: any = {
+        id: editingId || Date.now().toString(),
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: formData.price.trim(),
+        imageUrl: formData.imageUrl.trim(),
+        affiliateUrl: formData.affiliateUrl.trim(),
+        category: formData.category,
+        imageBgColor: formData.imageBgColor || 'bg-stone-100',
+        type: formData.type || 'affiliate',
+        hasSizes: Boolean(formData.hasSizes),
+        additionalImages: formData.additionalImages || []
       };
-      addProduct(newProduct);
-    }
 
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      mrp: '',
-      discount: '',
-      imageUrl: '',
-      affiliateUrl: '',
-      category: '',
-      imageBgColor: 'bg-stone-100',
-      rating: '',
-      type: 'affiliate',
-      hasSizes: false,
-      additionalImages: []
-    });
+      if (formData.mrp && formData.mrp.trim()) {
+        sanitizedProduct.mrp = formData.mrp.trim();
+      }
+      if (formData.discount && formData.discount.trim()) {
+        sanitizedProduct.discount = formData.discount.trim();
+      }
+      if (formData.rating && formData.rating.trim() && !isNaN(parseFloat(formData.rating))) {
+        sanitizedProduct.rating = parseFloat(formData.rating);
+      }
+
+      if (editingId) {
+        await editProduct(sanitizedProduct);
+        setActionFeedback({ type: 'success', message: 'Product updated successfully!' });
+        setEditingId(null);
+      } else {
+        await addProduct(sanitizedProduct);
+        setActionFeedback({ type: 'success', message: 'New product added successfully!' });
+      }
+
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        mrp: '',
+        discount: '',
+        imageUrl: '',
+        affiliateUrl: '',
+        category: '',
+        imageBgColor: 'bg-stone-100',
+        rating: '',
+        type: 'affiliate',
+        hasSizes: false,
+        additionalImages: []
+      });
+    } catch (err) {
+      console.error("Failed to save product:", err);
+      setActionFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to save product to database.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const executeDeleteProduct = async (id: string, name: string) => {
+    setDeletingId(id);
+    setActionFeedback(null);
+    try {
+      await removeProduct(id);
+      setActionFeedback({ type: 'success', message: `Deleted "${name}" successfully.` });
+      setConfirmDeleteModal(null);
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+      setActionFeedback({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to delete product.'
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const executeRestoreDefaults = async () => {
+    setIsSaving(true);
+    setActionFeedback(null);
+    try {
+      await restoreDefaults();
+      setActionFeedback({ type: 'success', message: 'Default catalog restored successfully!' });
+      setConfirmRestoreModal(false);
+    } catch (err) {
+      console.error("Failed to restore default catalog:", err);
+      setActionFeedback({ type: 'error', message: 'Failed to restore default catalog.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLinkSubmit = (e: React.FormEvent) => {
@@ -319,6 +388,19 @@ export default function Admin() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200/50 sticky top-28">
                 <h2 className="text-xl font-medium text-stone-800 mb-6">{editingId ? 'Edit Product' : 'Add New Product'}</h2>
                 
+                {actionFeedback && (
+                  <div className={`p-3.5 mb-4 rounded-xl text-sm font-medium flex items-center justify-between transition-all ${
+                    actionFeedback.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-800 border border-rose-200'
+                  }`}>
+                    <span>{actionFeedback.message}</span>
+                    <button type="button" onClick={() => setActionFeedback(null)} className="opacity-60 hover:opacity-100 p-1">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1">Product Name</label>
@@ -470,16 +552,25 @@ export default function Admin() {
                     <label htmlFor="hasSizes" className="text-sm font-medium text-stone-600">Product has clothing sizes</label>
                   </div>
 
-                  <button type="submit" disabled={isUploading || !formData.imageUrl} className="w-full h-10 mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
-                    {editingId ? (
+                  <button 
+                    type="submit" 
+                    disabled={isUploading || isSaving || !formData.imageUrl} 
+                    className="w-full h-11 mt-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-medium rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{editingId ? 'Updating...' : 'Saving Product...'}</span>
+                      </>
+                    ) : editingId ? (
                       <>
                         <Edit2 className="w-4 h-4" />
-                        Update Product
+                        <span>Update Product</span>
                       </>
                     ) : (
                       <>
                         <Plus className="w-4 h-4" />
-                        Add Product
+                        <span>Add Product</span>
                       </>
                     )}
                   </button>
@@ -489,7 +580,20 @@ export default function Admin() {
 
             {/* List Section */}
             <div className="lg:col-span-2">
-              <h2 className="text-xl font-medium text-stone-800 mb-6">Manage Products</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-medium text-stone-800">Manage Products</h2>
+                  <p className="text-xs text-stone-500 mt-0.5">{products.length} product{products.length === 1 ? '' : 's'} available</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRestoreModal(true)}
+                  disabled={isSaving}
+                  className="text-xs font-medium text-stone-500 hover:text-stone-900 px-3 py-1.5 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 transition-colors disabled:opacity-50"
+                >
+                  Restore Defaults
+                </button>
+              </div>
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200/50 overflow-hidden">
                 <ul className="divide-y divide-stone-100">
                   {products.map(product => (
@@ -514,8 +618,17 @@ export default function Admin() {
                         <button onClick={() => handleEditClick(product)} className="p-2 text-stone-400 hover:text-stone-700 transition-colors ml-auto sm:ml-0" title="Edit Product">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => removeProduct(product.id)} className="p-2 text-stone-400 hover:text-rose-500 transition-colors" title="Delete Product">
-                          <Trash2 className="w-4 h-4" />
+                        <button 
+                          onClick={() => setConfirmDeleteModal({ id: product.id, name: product.name })} 
+                          disabled={deletingId === product.id}
+                          className="p-2 text-stone-400 hover:text-rose-500 transition-colors disabled:opacity-50" 
+                          title="Delete Product"
+                        >
+                          {deletingId === product.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </li>
@@ -606,6 +719,69 @@ export default function Admin() {
         )}
       </main>
       
+      {/* In-app Delete Confirmation Modal (works flawlessly without iframe blocking) */}
+      {confirmDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-medium text-stone-900 mb-1">Delete Product</h3>
+            <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+              Are you sure you want to delete <span className="font-medium text-stone-800">"{confirmDeleteModal.name}"</span>? This will permanently remove it from your store.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteModal(null)}
+                className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingId === confirmDeleteModal.id}
+                onClick={() => executeDeleteProduct(confirmDeleteModal.id, confirmDeleteModal.name)}
+                className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
+              >
+                {deletingId === confirmDeleteModal.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-app Restore Defaults Modal */}
+      {confirmRestoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-lg font-medium text-stone-900 mb-1">Restore Default Catalog</h3>
+            <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+              This will restore the original curated products in your catalog.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmRestoreModal(false)}
+                className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={executeRestoreDefaults}
+                className="px-4 py-2 text-sm font-medium text-white bg-stone-900 hover:bg-stone-800 rounded-xl transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Restore Catalog
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
