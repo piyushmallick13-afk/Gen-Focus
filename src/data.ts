@@ -6,8 +6,9 @@ export const allCategories = [
   "Accessories"
 ];
 
-export const categoryDetails: Record<string, CategoryDetail> = {
-  "Men's Fashion": {
+export const categoryDetailsList: CategoryDetail[] = [
+  {
+    id: '1',
     name: "Men's Fashion",
     tagline: 'Timeless tailoring & modern relaxed essentials',
     description: 'Minimalist menswear tailored from breathable Belgian linen, Italian virgin wool, and structured organic cottons designed for enduring style.',
@@ -28,7 +29,8 @@ export const categoryDetails: Record<string, CategoryDetail> = {
       }
     ]
   },
-  "Women's Fashion": {
+  {
+    id: '2',
     name: "Women's Fashion",
     tagline: 'Fluid silhouettes & understated elegance',
     description: 'Thoughtfully designed wardrobe staples cut from silk blends, Mongolian cashmere, and structured linens offering seamless versatility from day to night.',
@@ -49,7 +51,8 @@ export const categoryDetails: Record<string, CategoryDetail> = {
       }
     ]
   },
-  "Accessories": {
+  {
+    id: '3',
     name: 'Accessories',
     tagline: 'Precision horology & handcrafted leather goods',
     description: 'Artisanal timepieces, full-grain leather notebooks, wallets, and minimalist lifestyle companions built to endure a lifetime of daily use.',
@@ -70,7 +73,12 @@ export const categoryDetails: Record<string, CategoryDetail> = {
       }
     ]
   }
-};
+];
+
+export const categoryDetails: Record<string, CategoryDetail> = categoryDetailsList.reduce((acc, cat) => {
+  acc[cat.name] = cat;
+  return acc;
+}, {} as Record<string, CategoryDetail>);
 
 export const products: Product[] = [
   {

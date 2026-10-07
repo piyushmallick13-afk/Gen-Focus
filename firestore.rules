@@ -10,5 +10,8 @@ service cloud.firestore {
     match /nav_links/{linkId} {
       allow read, write: if true;
     }
+    match /categories/{categoryId} {
+      allow read, write: if true;
+    }
   }
 }

@@ -33,6 +33,19 @@
         "section": { "type": "string", "enum": ["explore", "legal"], "description": "Nav section" }
       },
       "required": ["id", "label", "url", "section"]
+    },
+    "CategoryDetail": {
+      "title": "CategoryDetail",
+      "description": "Department or category details and structure",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Category ID" },
+        "name": { "type": "string", "description": "Category name" },
+        "tagline": { "type": "string", "description": "Tagline" },
+        "description": { "type": "string", "description": "Description" },
+        "image": { "type": "string", "description": "Featured image URL" }
+      },
+      "required": ["id", "name"]
     }
   },
   "firestore": {
@@ -43,6 +56,10 @@
     "/nav_links/{linkId}": {
       "schema": "NavLink",
       "description": "Customizable navigation and footer links"
+    },
+    "/categories/{categoryId}": {
+      "schema": "CategoryDetail",
+      "description": "Department navigation categories"
     }
   }
 }

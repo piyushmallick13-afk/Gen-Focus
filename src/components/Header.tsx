@@ -129,10 +129,7 @@ export default function Header() {
           </button>
         </div>
         
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-full bg-stone-900 flex items-center justify-center text-white text-xs font-semibold tracking-wider transition-transform duration-200 group-hover:scale-105 shadow-xs">
-            g
-          </div>
+        <Link to="/" className="flex items-center group">
           <span className="text-2xl font-display font-medium tracking-wide text-stone-800">
             genfocus
           </span>

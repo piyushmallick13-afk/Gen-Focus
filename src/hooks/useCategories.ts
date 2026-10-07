@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { CategoryDetail } from '../types';
-import { allCategories, categoryDetails as defaultCategoryDetails } from '../data';
+import { allCategories, categoryDetailsList as defaultCategoryDetails } from '../data';
 import { collection, onSnapshot, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -107,6 +107,21 @@ export function useCategories() {
     }
   };
 
+  const resetDefaults = async () => {
+    try {
+      const batch = writeBatch(db);
+      defaultCategoryDetails.forEach(cat => {
+        const ref = doc(db, 'categories', cat.id);
+        batch.set(ref, cat);
+      });
+      await batch.commit();
+      setCategories(defaultCategoryDetails);
+    } catch (error) {
+      console.warn("Error resetting default categories:", error);
+      setCategories(defaultCategoryDetails);
+    }
+  };
+
   return { 
     categories, 
     categoryNames, 
@@ -114,6 +129,7 @@ export function useCategories() {
     loading, 
     addCategory, 
     removeCategory, 
-    editCategory 
+    editCategory,
+    resetDefaults
   };
 }
